@@ -2,8 +2,18 @@ import Post from '../models/Post.model.js';
 
 //POST
 export const createPost = async (req, res) => {
-  const { Entry_Title, Entry_Resume, Entry_Body, Entry_FeaturedImage, Entry_Images, Entry_Tags, Author_Name, Author_ProfilePic } = req.body;
-  const newPost = new Post({Entry_Title, Entry_Resume, Entry_Body, Entry_FeaturedImage, Entry_Images, Entry_Tags}); const savedPost = await newPost.save(); res.status(201).json(savedPost);
+  const { 
+    Entry_Title,
+    Entry_Resume,
+    Entry_Body,
+    Entry_Featured_Image,
+    Entry_Complementary_Image,
+    Entry_Complementary_Text,
+    Entry_Tags,
+    Entry_Category,
+    Author_Name,
+  } = req.body;
+  const newPost = new Post({Entry_Title, Entry_Resume, Entry_Body, Entry_Featured_Image, Entry_Complementary_Image, Entry_Complementary_Text, Entry_Tags, Entry_Category, Author_Name}); const savedPost = await newPost.save(); res.status(201).json(savedPost);
 };
 
 //GET

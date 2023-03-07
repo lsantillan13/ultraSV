@@ -9,7 +9,7 @@ import { authJwt } from '../middlewares/index.js';
 /*C*/ router.get('/:postId',  postsCtrl.getPostById);
  
 /* ADMIN && MODERATOR */
-/*C*/ router.post('/', [authJwt.verifyToken, authJwt.isModerator], postsCtrl.createPost);
+/*C*/ router.post('/', [authJwt.verifyToken, authJwt.isAdmin], postsCtrl.createPost);
 /*R*/ router.put('/:postId', [authJwt.verifyToken, authJwt.isAdmin], postsCtrl.updatePostById);
 /*D*/ router.delete('/:postId', [authJwt.verifyToken, authJwt.isAdmin], postsCtrl.deletePostById);
 
