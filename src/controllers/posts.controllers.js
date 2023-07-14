@@ -7,9 +7,6 @@ export const createPost = async (req, res) => {
     Entry_Resume,
     Entry_Body,
     Entry_Featured_Image,
-    Entry_Complementary_Image,
-    Entry_Complementary_Text,
-    Entry_Tags,
     Entry_Category,
     Author_Name,
   } = req.body;

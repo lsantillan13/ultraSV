@@ -6,7 +6,7 @@ import { authJwt } from '../middlewares/index.js';
 
 /* REGULAR USER */
 /*R*/ router.get('/', postsCtrl.getPosts);
-/*C*/ router.get('/:postId',  postsCtrl.getPostById);
+/*R*/ router.get('/:postId',  postsCtrl.getPostById);
  
 /* ADMIN && MODERATOR */
 /*C*/ router.post('/', [authJwt.verifyToken, authJwt.isAdmin], postsCtrl.createPost);
