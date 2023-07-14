@@ -8,7 +8,7 @@ export const createCorte = async (req, res) => {
     id,
     url,
   } = req.body;
-  const newPost = new Corte({title, id, url}); const savedCorte = await newCorte.save(); res.status(201).json(savedCorte);
+  const newCorte = new Corte({title, id, url}); const savedCorte = await newCorte.save(); res.status(201).json(savedCorte);
 };
 
 //GET
