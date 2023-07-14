@@ -24,11 +24,13 @@ app.use(compression({
 app.use(express.json({ limit: "100mb" }));
 app.use(morgan('dev'));
 app.use(cors());
-app.use( function (req, res, next){
-  res.header("Acess-Controll-Allow-Origin", "*")
-  res.header("Acess-Controll-Allow-Headers", "Origin, X-Requested-Width, Content-Type, Accept")
+app.use(function(req, res, next) {
+  res.setHeader('Access-Control-Allow-Origin', 'https://voxdiario.com');
+  // Otros encabezados CORS opcionales
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   next();
-})
+});
 
 app.get('/', (req, res) => {
   
