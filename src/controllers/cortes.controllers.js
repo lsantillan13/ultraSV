@@ -20,4 +20,4 @@ export const getCortesById = async (req, res) => { const findedCorte = await Cor
 export const updateCortesById = async (req, res) => { const updatedCorte = await Corte.findByIdAndUpdate(req.params.corteId, req.body, {new: true}); res.status(204).json(updatedCorte); };
 
 //DELETE BY ID
-export const deleteCortesById = async (req, res) => { const deletedCorte = await Corte.findByIdAndDelete(req.params.CorteId); res.status(204).json();};
+export const deleteCortesById = async (req, res) => { const deletedCorte = await Corte.findByIdAndDelete(req.params.corteId); res.status(204).json();};
