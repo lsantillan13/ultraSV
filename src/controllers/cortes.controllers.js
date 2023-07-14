@@ -17,7 +17,7 @@ export const getCortes = async (req, res) => { const Cortes = await Corte.find()
 export const getCortesById = async (req, res) => { const findedCorte = await Corte.findById(req.params.corteId); res.status(200).json(findedCorte); };
 
 //UPDATE BY ID
-export const updateCortesById = async (req, res) => { const updatedCorte = await Corte.findByIdAndUpdate(req.params.CorteId, req.body, {new: true}); res.status(204).json(updatedCorte); };
+export const updateCortesById = async (req, res) => { const updatedCorte = await Corte.findByIdAndUpdate(req.params.corteId, req.body, {new: true}); res.status(204).json(updatedCorte); };
 
 //DELETE BY ID
 export const deleteCortesById = async (req, res) => { const deletedCorte = await Corte.findByIdAndDelete(req.params.CorteId); res.status(204).json();};
