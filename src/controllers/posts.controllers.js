@@ -8,9 +8,8 @@ export const createPost = async (req, res) => {
     Entry_Body,
     Entry_Featured_Image,
     Entry_Category,
-    Author_Name,
   } = req.body;
-  const newPost = new Post({Entry_Title, Entry_Resume, Entry_Body, Entry_Featured_Image, Entry_Complementary_Image, Entry_Complementary_Text, Entry_Tags, Entry_Category, Author_Name}); const savedPost = await newPost.save(); res.status(201).json(savedPost);
+  const newPost = new Post({Entry_Title, Entry_Resume, Entry_Body, Entry_Featured_Image,Entry_Category}); const savedPost = await newPost.save(); res.status(201).json(savedPost);
 };
 
 //GET

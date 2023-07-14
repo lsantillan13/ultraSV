@@ -24,19 +24,19 @@ app.use(compression({
 app.use(express.json({ limit: "100mb" }));
 app.use(morgan('dev'));
 app.use(cors());
-app.use(function(req, res, next) {
-  res.setHeader('Access-Control-Allow-Origin', 'https://voxdiario.com');
+app.use(function (req, res, next) {
+  const allowedOrigins = ['https://voxdiario.com'];
+  const origin = req.headers.origin;
+
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
-  // Verifica el origen de la solicitud y agrega el encabezado solo si es localhost
-  if (req.headers.origin === 'http://localhost:3000') {
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
-  }
-  
+
   next();
 });
-
 
 app.get('/', (req, res) => {
   
