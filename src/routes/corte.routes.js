@@ -6,7 +6,7 @@ import { authJwt } from '../middlewares/index.js';
 
 /* REGULAR USER */
 /*R*/ router.get('/', cortesCtrl.getCortes);
-/*R*/ router.get('/corteId', cortesCtrl.getCortesById);
+/*R*/ router.get('/:corteId', cortesCtrl.getCortesById);
 
 /* ADMIN && MODERATOR */
 /*C*/ router.post('/', [authJwt.verifyToken, authJwt.isAdmin], cortesCtrl.createCorte);
