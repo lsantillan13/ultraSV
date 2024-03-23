@@ -12,7 +12,7 @@ createRoles();
 app.use(morgan('dev'));
 app.use(cors());
 app.use(function (req, res, next) {
-  const allowedOrigins = ['https://voxdiario.com', 'http://127.0.0.1:5001', 'http://localhost:5001', '[::1]:5001'];
+  const allowedOrigins = ['https://voxdiario.com', 'http://127.0.0.1:5001', 'http://localhost:5001', '[::1]:5001', 'https://ultravox.netlify.app'];
   const origin = req.headers.origin;
 
   if (allowedOrigins.includes(origin)) {

@@ -18,7 +18,7 @@ var app = (0, _express["default"])();
 app.use((0, _morgan["default"])('dev'));
 app.use((0, _cors["default"])());
 app.use(function (req, res, next) {
-  var allowedOrigins = ['https://voxdiario.com', 'http://127.0.0.1:5001', 'http://localhost:5001', '[::1]:5001'];
+  var allowedOrigins = ['https://voxdiario.com', 'http://127.0.0.1:5001', 'http://localhost:5001', '[::1]:5001', 'https://ultravox.netlify.app'];
   var origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
