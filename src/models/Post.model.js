@@ -7,7 +7,6 @@ const newSchema = new Schema({
   Entry_Body: String,
   Entry_Featured_Image: String,
   Entry_Category: String,
-  Author_Name: String,
 },{ timestamps: true, versionKey: false})
 
 export default model('Post', newSchema);

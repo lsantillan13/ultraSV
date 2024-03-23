@@ -13,7 +13,7 @@ export const createPost = async (req, res) => {
 };
 
 //GET
-export const getPosts = async (req, res) => { const Posts = await Post.find(); res.json(Posts);};
+export const getPosts = async (req, res) => { const Posts = await Post.find().lean(); res.json(Posts);};
 
 //GET BY ID
 export const getPostById = async (req, res) => { const findedPost = await Post.findById(req.params.postId); res.status(200).json(findedPost); };
