@@ -1,4 +1,5 @@
 import express from 'express';
+const app = express();
 import morgan from 'morgan';
 import postRoutes from './routes/post.routes.js';
 import authRoutes from './routes/auth.routes.js';
@@ -7,7 +8,7 @@ import corteRoutes from './routes/corte.routes.js';
 import cors from 'cors';
 import {createRoles} from './libs/initialSetup.js';
 
-const app = express();
+
 createRoles();
 app.use(morgan('dev'));
 app.use(cors());
