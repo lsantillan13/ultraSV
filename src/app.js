@@ -1,5 +1,4 @@
 import express from 'express';
-const app = express();
 import {createRoles} from './libs/initialSetup.js';
 import morgan from 'morgan';
 import postRoutes from './routes/post.routes.js';
@@ -8,12 +7,16 @@ import userRoutes from './routes/user.routes.js';
 import corteRoutes from './routes/corte.routes.js';
 import cors from 'cors';
 
+const app = express();
+
 
 createRoles();
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 app.use(morgan('dev'));
 app.use(cors());
 app.use(function (req, res, next) {
-  const allowedOrigins = ['https://voxdiario.com', 'http://127.0.0.1:5001', 'http://localhost:5001', '[::1]:5001', 'https://ultravox.netlify.app'];
+  const allowedOrigins = ['https://voxdiario.com', 'http://127.0.0.1:5001', 'http://localhost:5001', 'https://ultravox.netlify.app', 'http://localhost:3000'];
   const origin = req.headers.origin;
 
   if (allowedOrigins.includes(origin)) {

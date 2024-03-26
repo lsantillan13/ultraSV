@@ -2,7 +2,6 @@ import User from './../models/User.model.js';
 import jwt from 'jsonwebtoken';
 import config from '../config.js';
 import Role from '../models/Role.model.js';
-import { reset } from 'nodemon';
 
 export const signUp = async (req, res) => {
   const { username, email, password, roles } = req.body;

@@ -38,19 +38,18 @@ var createRoles = /*#__PURE__*/function () {
             }).save()]);
           case 8:
             values = _context.sent;
-            console.log(values);
-            _context.next = 15;
+            _context.next = 14;
             break;
-          case 12:
-            _context.prev = 12;
+          case 11:
+            _context.prev = 11;
             _context.t0 = _context["catch"](0);
             console.error(_context.t0);
-          case 15:
+          case 14:
           case "end":
             return _context.stop();
         }
       }
-    }, _callee, null, [[0, 12]]);
+    }, _callee, null, [[0, 11]]);
   }));
   return function createRoles() {
     return _ref.apply(this, arguments);
