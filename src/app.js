@@ -5,30 +5,51 @@ import postRoutes from './routes/post.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import corteRoutes from './routes/corte.routes.js';
+import contentRoutes from './routes/content.routes.js';
 import cors from 'cors';
 
 const app = express();
-
-
 createRoles();
-app.use(cors());
+
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(morgan('dev'));
-app.use(function(req, res, next) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  // Otros encabezados CORS opcionales
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  next();
-});
+
+const whitelist = ['http://voxdiario.com', 'http://localhost:3000'];
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (whitelist.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+};
+
+app.use(cors(corsOptions));
 
 app.get('/', (req, res) => {
-  
-  res.json('')
+  res.send(`<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Directorio de API</title>
+</head>
+<body>
+    <h1>Bienvenido al directorio de API</h1>
+    <p>Utiliza los siguientes enlaces para acceder a las APIs:</p>
+    <ul>
+        <li><a href="/api/posts">Posts API</a></li>
+        <li><a href="/api/auth">Auth API</a></li>
+        <li><a href="/api/users">Users API</a></li>
+        <li><a href="/api/cortes">Cortes API</a></li>
+    </ul>
+</body>
+</html>`);
 })
 
 app.use('/api/posts', postRoutes);
+app.use('/api/content', contentRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/cortes', corteRoutes);

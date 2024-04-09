@@ -7,6 +7,12 @@ import { authJwt } from '../middlewares/index.js';
 /* REGULAR USER */
 /*R*/ router.get('/', postsCtrl.getPosts);
 /*R*/ router.get('/:postId',  postsCtrl.getPostById);
+
+/* Últimas 5 Publicaciones */
+// /*R*/ router.get('/api/carousel', postsCtrl.getLastFivePosts)
+// /*R*/ router.get('/api/components', postsCtrl.getNextEightPosts)
+// /*R*/ router.get('/api/politics', postsCtrl.getPoliticalPosts)
+
  
 /* ADMIN && MODERATOR */
 /*C*/ router.post('/', [authJwt.verifyToken, authJwt.isAdmin], postsCtrl.createPost);
