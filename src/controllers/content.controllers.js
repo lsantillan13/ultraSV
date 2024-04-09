@@ -121,3 +121,16 @@ export const getPoliticalPosts = async (req, res) => {
       res.status(500).json({ message: error.message });
     }
 };
+
+export const getPostById = async (req, res) => {
+    try {
+        const postId = req.params.id; // Obtén el ID del post de los parámetros de la solicitud
+        const post = await Post.findById(postId).lean(); // Busca el post por su ID
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' }); // Si no se encuentra el post, devuelve un error 404
+        }
+        res.json(post); // Si se encuentra el post, devuélvelo en formato JSON
+    } catch (error) {
+        res.status(500).json({ message: error.message }); // Manejo de errores
+    }
+};

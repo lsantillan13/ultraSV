@@ -19,4 +19,6 @@ import * as contentCtrl from '../controllers/content.controllers';
 
 /*R*/ router.get('/last', contentCtrl.getLast);
 
+/*R*/ router.get('/:id', contentCtrl.getPostById);
+
 export default router;
