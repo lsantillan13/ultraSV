@@ -134,3 +134,69 @@ export const getPostById = async (req, res) => {
         res.status(500).json({ message: error.message }); // Manejo de errores
     }
 };
+
+// Función genérica para obtener las últimas noticias de una categoría
+export const getLatestPostsByCategory = async (category, limit = 10) => {
+  try {
+      const posts = await Post.find({ 'Entry_Category': category })
+          .sort({ createdAt: -1 })
+          .limit(limit)
+          .lean();
+      return posts;
+  } catch (error) {
+      throw new Error(error.message);
+  }
+};
+
+export const getRelatedPost = async (req, res) => {
+  const { category, postId } = req.params;
+  try{
+    // Obtener las últimas 4 publicaciones de la misma categoría
+    const latestPosts = await Post.find({ 'Entry_Category': category, '_id': { $ne: postId }})
+      .sort({ createdAt: -1})
+      .limit(4)
+      .lean();
+
+      res.json(latestPosts);
+  }
+  catch( error ){
+    res.status(500).json({message: error.message});
+  }
+};
+
+
+export const getStreaming = async (req, res) => {
+  try {
+    const posts = await Post.find({ 'Entry_Category': 'Streaming' })
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json(posts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+export const getEmprender = async (req, res) => {
+  try {
+    const posts = await Post.find({ 'Entry_Category': 'Emprender' })
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json(posts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+export const getEspectaculos = async (req, res) => {
+  try {
+    const posts = await Post.find({ 'Entry_Category': 'Espectaculos' })
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json(posts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
