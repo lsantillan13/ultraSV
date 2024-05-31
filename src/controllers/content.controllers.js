@@ -191,9 +191,9 @@ export const getEmprender = async (req, res) => {
 
 export const getEspectaculos = async (req, res) => {
   try {
-    const posts = await Post.find({ 'Entry_Category': 'Espectaculos' })
+    const posts = await Post.find({ 'Entry_Category': 'Espectáculos' })
       .sort({ createdAt: -1 })
-      .lean();
+      .lean()
     res.json(posts);
   } catch (error) {
     res.status(500).json({ message: error.message });
