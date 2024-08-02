@@ -21,7 +21,7 @@ app.use(_express["default"].urlencoded({
   extended: true
 }));
 app.use((0, _morgan["default"])('dev'));
-var whitelist = ['https://voxdiario.com', 'http://localhost:3000'];
+var whitelist = ['https://voxdiario.com', 'https://www.voxdiario.com', 'http://localhost:3000'];
 var corsOptions = {
   origin: function origin(_origin, callback) {
     if (whitelist.indexOf(_origin) !== -1 || !_origin) {
