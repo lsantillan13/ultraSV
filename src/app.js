@@ -15,7 +15,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(morgan('dev'));
 
-const whitelist = ['https://voxdiario.com', 'https://www.voxdiario.com', 'http://localhost:3000'];
+const whitelist = ['https://voxdiario.com', 'https://www.voxdiario.com', 'http://localhost:3000', 'http://192.168.0.50:3000'];
 const corsOptions = {
   origin: function (origin, callback) {
     if (whitelist.indexOf(origin) !== -1 || !origin) {
