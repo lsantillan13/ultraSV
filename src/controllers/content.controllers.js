@@ -148,6 +148,29 @@ export const getLatestPostsByCategory = async (category, limit = 10) => {
   }
 };
 
+export const getPostsList = async (req, res) => {
+  const { category } = req.params;
+  const { page = 1, limit = 10 } = req.query // Valores por defecto
+
+  try {
+    const posts = await Post.find({category})
+      .limit( limit * 1 )
+      .skip((page - 1) * limit )
+      .exec();
+
+    const count = await Post.countDocuments({ category })
+
+    res.json({
+      posts,
+      totalPages: Math.ceil(count / limit),
+      currentPage: page
+    });
+  } catch (error) {
+      res.status(500).send('Error interno del servidor');
+    }
+  
+}
+
 export const getRelatedPost = async (req, res) => {
   const { category, postId } = req.params;
   try{
@@ -200,3 +223,24 @@ export const getEspectaculos = async (req, res) => {
   }
 };
 
+export const searchPosts = async (req, res) => {
+  try {
+    const {query} = req.query; // Capturamos el parametro de la URL
+
+    if (!query) {
+      return res.status(400).json({ message: 'Query parameter is required'});
+    }
+
+    const posts  = await Post.find({
+      $or: [
+        { Entry_Title: { $regex: query, $options: 'i' } },
+        { Entry_Body: { $regex: query, $options: 'i'} },
+        { Entry_Category: { $regex: query, $options: 'i' } }
+      ]
+    }).sort({ createdAt: -1}); // Ordena por la fecha de creación más reciente
+    
+    res.status(200).json(posts);
+  } catch (error) {
+    res.status(500).json({ message: 'Error en la busqueda', error });
+  }
+};

@@ -24,8 +24,12 @@ import * as contentCtrl from '../controllers/content.controllers';
 /* Categorías */
     router.get('/buscar/:category', contentCtrl.getLatestPostsByCategory);
 
-/*===== Publicaciones Relacionadas =====*/
+/*===== Busqueda de Publicaciones  =====*/
+    router.get('/busqueda', contentCtrl.searchPosts)
+    router.get('/search/:category', contentCtrl.getPostsList);
+ 
 
+/*===== Publicaciones Relacionadas =====*/
  /*Same Category*/
     router.get('/:category/related-post/:postId', contentCtrl.getRelatedPost);
  /*Streaming*/

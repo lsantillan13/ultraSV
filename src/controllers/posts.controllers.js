@@ -9,7 +9,7 @@ export const createPost = async (req, res) => {
     Entry_Featured_Image,
     Entry_Category,
   } = req.body;
-  const newPost = new Post({Entry_Title, Entry_Resume, Entry_Body, Entry_Featured_Image,Entry_Category}); const savedPost = await newPost.save(); res.status(201).json(savedPost);
+  const newPost = new Post({Entry_Title, Entry_Resume, Entry_Body, Entry_Featured_Image, Entry_Category}); const savedPost = await newPost.save(); res.status(201).json(savedPost);
 };
 
 //GET
@@ -27,7 +27,6 @@ export const getPosts = async (req, res) => {
 
 //GET BY ID
 export const getPostById = async (req, res) => { const findedPost = await Post.findById(req.params.postId); res.status(200).json(findedPost); };
-
 //UPDATE BY ID
 export const updatePostById = async (req, res) => { const updatedPost = await Post.findByIdAndUpdate(req.params.postId, req.body, {new: true}); res.status(204).json(updatedPost); };
 
