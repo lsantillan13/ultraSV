@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import './database.js';
 import app from './app.js';
 const PORT = process.env.PORT || 8080

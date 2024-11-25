@@ -27,7 +27,6 @@ import * as contentCtrl from '../controllers/content.controllers';
 /*===== Busqueda de Publicaciones  =====*/
     router.get('/busqueda', contentCtrl.searchPosts)
     router.get('/search/:category', contentCtrl.getPostsList);
- 
 
 /*===== Publicaciones Relacionadas =====*/
  /*Same Category*/

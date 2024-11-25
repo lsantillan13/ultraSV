@@ -136,15 +136,21 @@ export const getPostById = async (req, res) => {
 };
 
 // Función genérica para obtener las últimas noticias de una categoría
-export const getLatestPostsByCategory = async (category, limit = 10) => {
+export const getLatestPostsByCategory = async (req, res) => {
+  const categoryId = req.params.category;
+  const limit = parseInt(req.query.limit) || 10;
+  const offset = parseInt(req.query.offset) || 0;
+
   try {
-      const posts = await Post.find({ 'Entry_Category': category })
+      const posts = await Post.find({ 'Entry_Category': categoryId })
           .sort({ createdAt: -1 })
+          .skip(offset)
           .limit(limit)
           .lean();
-      return posts;
+      return res.json(posts);
   } catch (error) {
-      throw new Error(error.message);
+    console.error('Error fetching posts:', error.message);
+    return res.status(500).json({ message: error.message });
   }
 };
 
