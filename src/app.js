@@ -83,7 +83,7 @@ app.get('/rest/posts/:id', async (req, res) => {
   const { id } = req.params;
   
   try{
-    const response = await axios.get(`${process.env.REACT_APP_POST_BY_ID}/${id}`);
+    const response = await axios.get(`${process.env.REACT_APP_DEPLOYED}/${id}`);
     res.json(response.data);
   } catch (error) {
     console.error('Error fetching post:', error);
@@ -95,7 +95,7 @@ app.get('/rest/:category/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    const response = await axios.get(`${process.env.REACT_APP_POST_BY_ID}/${id}`);
+    const response = await axios.get(`${process.env.REACT_APP_DEPLOYED}/${id}`);
     const post = response.data;
     console.log(post);
 
