@@ -79,7 +79,7 @@ app.get('/', (req, res) => {
 });
 
 
-app.get('api/posts/:id', async (req, res) => {
+app.get('/rest/posts/:id', async (req, res) => {
   const { id } = req.params;
   
   try{
@@ -91,7 +91,7 @@ app.get('api/posts/:id', async (req, res) => {
   }
 });
 
-app.get('/:category/:id', async (req, res) => {
+app.get('/rest/:category/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -183,18 +183,18 @@ app.get('/:category/:id', async (req, res) => {
 //   }
 // });
 
-app.get('*', (req, res) => {
-  const content = renderToString(
-    <div>
-     <Helmet> <title>VoxDiario</title> <meta name="description" content="Portal de noticias en tiempo real." /> <meta property="og:title" content="VoxDiario" /> <meta property="og:description" content="Portal de noticias en tiempo real." /> <meta property="og:image" content="/default-image.jpg" /> <meta property="og:type" content="website" /> </Helmet>
-      <div id="root">
-        <h1>Bienvenido a VoxDiario</h1>
-        <p>Noticias en tiempo real</p>
-      </div>
-    </div>
-  )
-  const helmet = Helmet.renderStatic(); res.send(` <!DOCTYPE html> <html lang="es"> <head> ${helmet.title.toString()} ${helmet.meta.toString()} </head> <body> <div id="root">${content}</div> <script src="/static/js/bundle.js"></script> </body> </html> `);
-})
+// app.get('*', (req, res) => {
+//   const content = renderToString(
+//     <div>
+//      <Helmet> <title>VoxDiario</title> <meta name="description" content="Portal de noticias en tiempo real." /> <meta property="og:title" content="VoxDiario" /> <meta property="og:description" content="Portal de noticias en tiempo real." /> <meta property="og:image" content="/default-image.jpg" /> <meta property="og:type" content="website" /> </Helmet>
+//       <div id="root">
+//         <h1>Bienvenido a VoxDiario</h1>
+//         <p>Noticias en tiempo real</p>
+//       </div>
+//     </div>
+//   )
+//   const helmet = Helmet.renderStatic(); res.send(` <!DOCTYPE html> <html lang="es"> <head> ${helmet.title.toString()} ${helmet.meta.toString()} </head> <body> <div id="root">${content}</div> <script src="/static/js/bundle.js"></script> </body> </html> `);
+// })
 
 app.use('/api/posts', postRoutes);
 app.use('/api/content', contentRoutes);
