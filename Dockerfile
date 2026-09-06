@@ -1,9 +1,8 @@
-FROM node:20-alpine
-RUN corepack enable
+FROM node:20-slim
 WORKDIR /app
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile || pnpm install
+COPY package.json ./
+RUN npm install
 COPY . .
-RUN pnpm run build
+RUN npm run build
 EXPOSE 8000
 CMD ["node", "build/index.js"]
