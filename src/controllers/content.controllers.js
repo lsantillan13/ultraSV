@@ -136,46 +136,17 @@ export const getPostById = async (req, res) => {
 };
 
 // Función genérica para obtener las últimas noticias de una categoría
-export const getLatestPostsByCategory = async (req, res) => {
-  const categoryId = req.params.category;
-  const limit = parseInt(req.query.limit) || 10;
-  const offset = parseInt(req.query.offset) || 0;
-
+export const getLatestPostsByCategory = async (category, limit = 10) => {
   try {
-      const posts = await Post.find({ 'Entry_Category': categoryId })
+      const posts = await Post.find({ 'Entry_Category': category })
           .sort({ createdAt: -1 })
-          .skip(offset)
           .limit(limit)
           .lean();
-      return res.json(posts);
+      return posts;
   } catch (error) {
-    console.error('Error fetching posts:', error.message);
-    return res.status(500).json({ message: error.message });
+      throw new Error(error.message);
   }
 };
-
-export const getPostsList = async (req, res) => {
-  const { category } = req.params;
-  const { page = 1, limit = 10 } = req.query // Valores por defecto
-
-  try {
-    const posts = await Post.find({category})
-      .limit( limit * 1 )
-      .skip((page - 1) * limit )
-      .exec();
-
-    const count = await Post.countDocuments({ category })
-
-    res.json({
-      posts,
-      totalPages: Math.ceil(count / limit),
-      currentPage: page
-    });
-  } catch (error) {
-      res.status(500).send('Error interno del servidor');
-    }
-  
-}
 
 export const getRelatedPost = async (req, res) => {
   const { category, postId } = req.params;
@@ -229,24 +200,3 @@ export const getEspectaculos = async (req, res) => {
   }
 };
 
-export const searchPosts = async (req, res) => {
-  try {
-    const {query} = req.query; // Capturamos el parametro de la URL
-
-    if (!query) {
-      return res.status(400).json({ message: 'Query parameter is required'});
-    }
-
-    const posts  = await Post.find({
-      $or: [
-        { Entry_Title: { $regex: query, $options: 'i' } },
-        { Entry_Body: { $regex: query, $options: 'i'} },
-        { Entry_Category: { $regex: query, $options: 'i' } }
-      ]
-    }).sort({ createdAt: -1}); // Ordena por la fecha de creación más reciente
-    
-    res.status(200).json(posts);
-  } catch (error) {
-    res.status(500).json({ message: 'Error en la busqueda', error });
-  }
-};
