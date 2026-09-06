@@ -1,8 +1,7 @@
 FROM node:20-slim
 WORKDIR /app
-RUN npm i -g pnpm
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --prod
+COPY package.json ./
+RUN npm install --omit=dev
 COPY build ./build
 EXPOSE 8080
 CMD ["node", "build/index.js"]
