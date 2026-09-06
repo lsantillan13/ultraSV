@@ -21,11 +21,18 @@
   "main": "index.js",
   "scripts": {
     "build": "babel src --out-dir build",
-    "dev": "nodemon src/index.js --exec babel-node",
+    "dev": "nodemon --legacy-watch --polling-interval 1000 src/index.js --exec babel-node",
     "start": "node build/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "nodemonConfig": {
+    "legacyWatch": true,
+    "pollingInterval": 1000,
+    "watch": ["src"],
+    "ext": "js,json",
+    "ignore": ["build", "node_modules"]
+  }
 }
