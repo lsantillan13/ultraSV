@@ -17,25 +17,32 @@ var _compression = _interopRequireDefault(require("compression"));
 var _helmet = _interopRequireDefault(require("helmet"));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default": e }; }
 var app = (0, _express["default"])();
-var whitelist = ['https://voxdiario.com', 'https://www.voxdiario.com', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:8080', 'http://192.168.100.11:3000', 'http://192.168.100.11:8080'];
+var whitelist = ['https://voxdiario.com', 'https://www.voxdiario.com', 'https://voxdiario.com.ar', 'https://www.voxdiario.com.ar', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:8080', 'http://192.168.100.11:3000', 'http://192.168.100.11:8080'];
 var corsOptions = {
   origin: function origin(_origin, callback) {
-    // Permitir requests sin Origin (Koyeb health check, curl, Cloudflare Worker)
     if (!_origin) return callback(null, true);
     if (whitelist.includes(_origin)) return callback(null, true);
-    // En vez de tirar error, permitimos pero logueamos. Asi no rompe CORS
-    console.warn("CORS: Origin no listado pero permitido temporalmente: ".concat(_origin));
+    // Permitir igual pero loguear para debug
+    console.warn("CORS: Origin no listado pero permitido: ".concat(_origin));
     return callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'x-access-token',
+  // <- ESTE TE FALTABA
+  'x-auth-token'],
+  exposedHeaders: ['x-access-token', 'Authorization'],
   optionsSuccessStatus: 204
 };
+
+// ORDEN IMPORTA: cors primero, antes que helmet
 app.use((0, _cors["default"])(corsOptions));
 app.options('*', (0, _cors["default"])(corsOptions));
+
+// Helmet sin bloquear recursos cross-origin
 app.use((0, _helmet["default"])({
-  crossOriginResourcePolicy: false
+  crossOriginResourcePolicy: false,
+  crossOriginEmbedderPolicy: false
 }));
 app.use((0, _compression["default"])());
 app.use(_express["default"].json({
@@ -72,9 +79,13 @@ app.use(function (req, res) {
 });
 app.use(function (err, req, res, next) {
   console.error('[VoxDiario API ERROR]', err);
-  // Siempre devolver CORS incluso en error
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-  res.header("Access-Control-Allow-Credentials", "true");
+  // Asegurar CORS incluso en error
+  var origin = req.headers.origin;
+  if (origin) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-access-token");
+  }
   res.status(err.status || 500).json({
     status: err.status || 500,
     message: err.message || 'Error interno'
