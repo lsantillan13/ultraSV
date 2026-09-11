@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.verifyToken = exports.isModerator = exports.isAdmin = void 0;
 var _jsonwebtoken = _interopRequireDefault(require("jsonwebtoken"));
-var _config = _interopRequireDefault(require("../config"));
+var _config = _interopRequireDefault(require("../config.js"));
 var _UserModel = _interopRequireDefault(require("../models/User.model.js"));
 var _RoleModel = _interopRequireDefault(require("../models/Role.model.js"));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default": e }; }
@@ -15,16 +15,19 @@ function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
 var verifyToken = exports.verifyToken = /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(req, res, next) {
-    var token, decoded, user, _t;
+    var _req$headers$authoriz, token, decoded, user, _t;
     return _regenerator().w(function (_context) {
       while (1) switch (_context.p = _context.n) {
         case 0:
           _context.p = 0;
-          token = req.headers["x-access-token"];
+          // LOG PARA DEBUG - borralo después
+          console.log('HEADERS RECIBIDOS:', req.headers);
+          token = req.headers["x-access-token"] || ((_req$headers$authoriz = req.headers["authorization"]) === null || _req$headers$authoriz === void 0 ? void 0 : _req$headers$authoriz.split(' ')[1]) || req.headers["authorization"];
           if (token) {
             _context.n = 1;
             break;
           }
+          console.log('❌ NO HAY TOKEN en headers');
           return _context.a(2, res.status(403).json({
             message: "No token provided"
           }));
@@ -45,15 +48,17 @@ var verifyToken = exports.verifyToken = /*#__PURE__*/function () {
             message: 'no user found'
           }));
         case 3:
+          req.user = user;
           next();
           _context.n = 5;
           break;
         case 4:
           _context.p = 4;
           _t = _context.v;
+          console.log('❌ TOKEN ERROR:', _t.message);
           return _context.a(2, res.status(401).json({
             message: 'Unauthorized',
-            err: _t
+            err: _t.message
           }));
         case 5:
           ;
@@ -68,39 +73,46 @@ var verifyToken = exports.verifyToken = /*#__PURE__*/function () {
 }();
 var isModerator = exports.isModerator = /*#__PURE__*/function () {
   var _ref2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(req, res, next) {
-    var user, roles, i;
+    var user, roles, i, _t2;
     return _regenerator().w(function (_context2) {
       while (1) switch (_context2.n) {
         case 0:
+          _t2 = req.user;
+          if (_t2) {
+            _context2.n = 2;
+            break;
+          }
           _context2.n = 1;
           return _UserModel["default"].findById(req.userId);
         case 1:
-          user = _context2.v;
-          _context2.n = 2;
+          _t2 = _context2.v;
+        case 2:
+          user = _t2;
+          _context2.n = 3;
           return _RoleModel["default"].find({
             _id: {
               $in: user.roles
             }
           });
-        case 2:
+        case 3:
           roles = _context2.v;
           i = 0;
-        case 3:
+        case 4:
           if (!(i < roles.length)) {
-            _context2.n = 5;
+            _context2.n = 6;
             break;
           }
-          if (!(roles[i].name === "moderator")) {
-            _context2.n = 4;
+          if (!(roles[i].name === "moderator" || roles[i].name === "admin")) {
+            _context2.n = 5;
             break;
           }
           next();
           return _context2.a(2);
-        case 4:
-          i++;
-          _context2.n = 3;
-          break;
         case 5:
+          i++;
+          _context2.n = 4;
+          break;
+        case 6:
           return _context2.a(2, res.status(403).json({
             message: 'Require Moderator role'
           }));
@@ -113,39 +125,46 @@ var isModerator = exports.isModerator = /*#__PURE__*/function () {
 }();
 var isAdmin = exports.isAdmin = /*#__PURE__*/function () {
   var _ref3 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(req, res, next) {
-    var user, roles, i;
+    var user, roles, i, _t3;
     return _regenerator().w(function (_context3) {
       while (1) switch (_context3.n) {
         case 0:
+          _t3 = req.user;
+          if (_t3) {
+            _context3.n = 2;
+            break;
+          }
           _context3.n = 1;
           return _UserModel["default"].findById(req.userId);
         case 1:
-          user = _context3.v;
-          _context3.n = 2;
+          _t3 = _context3.v;
+        case 2:
+          user = _t3;
+          _context3.n = 3;
           return _RoleModel["default"].find({
             _id: {
               $in: user.roles
             }
           });
-        case 2:
+        case 3:
           roles = _context3.v;
           i = 0;
-        case 3:
+        case 4:
           if (!(i < roles.length)) {
-            _context3.n = 5;
+            _context3.n = 6;
             break;
           }
           if (!(roles[i].name === "admin")) {
-            _context3.n = 4;
+            _context3.n = 5;
             break;
           }
           next();
           return _context3.a(2);
-        case 4:
-          i++;
-          _context3.n = 3;
-          break;
         case 5:
+          i++;
+          _context3.n = 4;
+          break;
+        case 6:
           return _context3.a(2, res.status(403).json({
             message: 'Require Admin role'
           }));
