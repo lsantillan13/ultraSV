@@ -1,11 +1,20 @@
 {
+  "name": "ultrasv",
+  "version": "1.0.0",
+  "main": "index.js",
+  "description": "UltraSV - VoxDiario API",
+  "author": "",
+  "license": "ISC",
+  "keywords": [],
   "dependencies": {
     "@babel/cli": "^7.19.3",
     "@babel/core": "^7.19.3",
     "@babel/node": "^7.19.1",
     "@babel/preset-env": "^7.19.3",
+    "axios": "^1.20.0",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.1",
+    "cheerio": "^1.2.0",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
@@ -14,25 +23,37 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^8.2.3",
     "morgan": "^1.10.0",
-    "nodemon": "^2.0.20"
+    "multer": "^2.3.0",
+    "node-cache": "^5.1.2",
+    "node-cron": "^4.6.0",
+    "nodemon": "^2.0.20",
+    "ws": "^8.21.3"
   },
-  "name": "ultrasv",
-  "version": "1.0.0",
-  "main": "index.js",
   "scripts": {
     "build": "babel src --out-dir build",
-    "dev": "nodemon --legacy-watch --polling-interval 1000 src/index.js --exec babel-node",
+    "dev": "nodemon src/index.js --exec babel-node",
+    "dev:legacy": "nodemon --legacy-watch src/index.js --exec babel-node",
     "start": "node build/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "nodemonConfig": {
-    "legacyWatch": true,
-    "pollingInterval": 1000,
-    "watch": ["src"],
+    "watch": [
+      "src"
+    ],
     "ext": "js,json",
-    "ignore": ["build", "node_modules"]
+    "execMap": {
+      "js": "babel-node"
+    },
+    "ignore": [
+      "build",
+      "node_modules",
+      "**/node_modules/**",
+      ".pnpm-store",
+      "src/**/*.test.js",
+      "src/**/*.spec.js"
+    ],
+    "legacyWatch": false,
+    "pollingInterval": 1000,
+    "delay": 500,
+    "verbose": true
   }
 }

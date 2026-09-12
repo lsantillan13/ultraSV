@@ -1,3 +1,3 @@
 export default {
-  SECRET: process.env.JWT_SECRET || 'posts-api'
+  SECRET: process.env.JWT_SECRET
 }

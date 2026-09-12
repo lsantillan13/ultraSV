@@ -6,7 +6,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports["default"] = void 0;
 var _express = require("express");
-var contentCtrl = _interopRequireWildcard(require("../controllers/content.controllers"));
+var _content = _interopRequireWildcard(require("../controllers/content.controllers"));
+var contentCtrl = _content;
+var _authJwt = require("../middlewares/authJwt.js");
 function _interopRequireWildcard(e, t) { if ("function" == typeof WeakMap) var r = new WeakMap(), n = new WeakMap(); return (_interopRequireWildcard = function _interopRequireWildcard(e, t) { if (!t && e && e.__esModule) return e; var o, i, f = { __proto__: null, "default": e }; if (null === e || "object" != _typeof(e) && "function" != typeof e) return f; if (o = t ? n : r) { if (o.has(e)) return o.get(e); o.set(e, f); } for (var _t in e) "default" !== _t && {}.hasOwnProperty.call(e, _t) && ((i = (o = Object.defineProperty) && Object.getOwnPropertyDescriptor(e, _t)) && (i.get || i.set) ? o(f, _t, i) : f[_t] = e[_t]); return f; })(e, t); }
 var router = (0, _express.Router)();
 /*===== Rutas de Usuarios Regulares =====*/
@@ -38,4 +40,6 @@ router.get('/getStreaming', contentCtrl.getStreaming);
 router.get('/getEmprender', contentCtrl.getEmprender);
 /*Espectáculos*/
 router.get('/getEspectaculos', contentCtrl.getEspectaculos);
+router.patch('/admin/portada/:id', _authJwt.verifyToken, _authJwt.isAdmin, _content.setPortada);
+router["delete"]('/admin/portada', _authJwt.verifyToken, _authJwt.isAdmin, _content.removePortada);
 var _default = exports["default"] = router;

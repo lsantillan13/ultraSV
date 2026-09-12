@@ -1,4 +1,8 @@
 import {Router} from 'express';
+
+import {setPortada, removePortada } from '../controllers/content.controllers';
+import { verifyToken, isAdmin } from '../middlewares/authJwt.js';
+
 const router = Router();
 
 import * as contentCtrl from '../controllers/content.controllers';
@@ -34,5 +38,7 @@ import * as contentCtrl from '../controllers/content.controllers';
     router.get('/getEmprender', contentCtrl.getEmprender);
  /*Espectáculos*/
     router.get('/getEspectaculos', contentCtrl.getEspectaculos);
+    router.patch('/admin/portada/:id', verifyToken, isAdmin, setPortada);
+    router.delete('/admin/portada', verifyToken, isAdmin, removePortada);
 
 export default router;

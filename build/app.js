@@ -13,19 +13,24 @@ var _userRoutes = _interopRequireDefault(require("./routes/user.routes.js"));
 var _corteRoutes = _interopRequireDefault(require("./routes/corte.routes.js"));
 var _contentRoutes = _interopRequireDefault(require("./routes/content.routes.js"));
 var _sitemapRoutes = _interopRequireDefault(require("./routes/sitemap.routes.js"));
+var _boletinRoutes = _interopRequireDefault(require("./routes/boletin.routes.js"));
+var _rutasRoutes = _interopRequireDefault(require("./routes/rutas.routes.js"));
+var _postsV2Routes = _interopRequireDefault(require("./routes/posts.v2.routes.js"));
+var _tagsRoutes = _interopRequireDefault(require("./routes/v2/tags.routes.js"));
+var _ttsRoutes = _interopRequireDefault(require("./routes/v2/tts.routes.js"));
+var _viewsRoutes = _interopRequireDefault(require("./routes/v2/views.routes.js"));
+var _categoriasRoutes = _interopRequireDefault(require("./routes/v2/categorias.routes.js"));
+var _trendingDecay = require("./jobs/trendingDecay.js");
 var _cors = _interopRequireDefault(require("cors"));
 var _compression = _interopRequireDefault(require("compression"));
 var _helmet = _interopRequireDefault(require("helmet"));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default": e }; }
-// <-- NUEVO
-
 var app = (0, _express["default"])();
 var whitelist = ['https://voxdiario.com', 'https://www.voxdiario.com', 'https://voxdiario.com.ar', 'https://www.voxdiario.com.ar', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:8080', 'http://192.168.100.11:3000', 'http://192.168.100.11:8080'];
 var corsOptions = {
   origin: function origin(_origin, callback) {
     if (!_origin) return callback(null, true);
     if (whitelist.includes(_origin)) return callback(null, true);
-    // Permitir Googlebot y crawlers
     if (_origin.includes('google') || _origin.includes('bing') || _origin.includes('facebook')) {
       return callback(null, true);
     }
@@ -54,6 +59,10 @@ app.use(_express["default"].urlencoded({
 }));
 app.use((0, _morgan["default"])('dev'));
 (0, _initialSetup.createRoles)();
+(0, _trendingDecay.startTrendingJobs)(); // <-- ACA SE INICIA
+
+// PUBLIC ESTATICO PRIMERO
+app.use('/public', _express["default"]["static"]('public'));
 
 // HEALTH
 app.get('/health', function (req, res) {
@@ -65,18 +74,25 @@ app.get('/health', function (req, res) {
   });
 });
 app.get('/', function (req, res) {
-  res.send("<h1>VoxDiario API v2 Running</h1>\n  <ul>\n    <li><a href=\"/health\">Health</a></li>\n    <li><a href=\"/sitemap.xml\">sitemap.xml</a></li>\n    <li><a href=\"/sitemap-news.xml\">sitemap-news.xml (Google News)</a></li>\n    <li><a href=\"/robots.txt\">robots.txt</a></li>\n    <li><a href=\"/feed.xml\">feed.xml (RSS)</a></li>\n  </ul>");
+  res.send("<h1>VoxDiario API v2 Running</h1>\n  <ul>\n    <li><a href=\"/health\">Health</a></li>\n    <li><a href=\"/sitemap.xml\">sitemap.xml</a></li>\n    <li><a href=\"/api/content/carousel\">/api/content/carousel</a></li>\n    <li><a href=\"/api/content/component\">/api/content/component</a></li>\n    <li><a href=\"/api/v2/servicios/cortes\">/api/v2/servicios/cortes</a></li>\n    <li><a href=\"/api/v2/servicios/farmacias\">/api/v2/servicios/farmacias</a></li>\n    <li><a href=\"/api/v2/servicios/rutas\">/api/v2/servicios/rutas</a></li>\n    <li><a href=\"/api/v2/tags\">/api/v2/tags</a></li>\n    <li><a href=\"/api/v2/posts/destacada\">/api/v2/posts/destacada</a></li>\n  </ul>");
 });
-
-// --- SITEMAPS Y SEO - ANTES DE /api para que sean en root ---
 app.use('/', _sitemapRoutes["default"]);
 
-// --- TUS RUTAS EXISTENTES ---
+// --- RUTAS V1 ---
 app.use('/api/posts', _postRoutes["default"]);
 app.use('/api/content', _contentRoutes["default"]);
 app.use('/api/auth', _authRoutes["default"]);
 app.use('/api/users', _userRoutes["default"]);
 app.use('/api/cortes', _corteRoutes["default"]);
+app.use('/api/boletin', _boletinRoutes["default"]);
+
+// --- RUTAS V2 ---
+app.use('/api/v2/servicios/rutas', _rutasRoutes["default"]);
+app.use('/api/v2/posts', _postsV2Routes["default"]);
+app.use('/api/v2/views', _viewsRoutes["default"]);
+app.use('/api/v2/tags', _tagsRoutes["default"]);
+app.use('/api/v2/tts', _ttsRoutes["default"]);
+app.use('/api/v2/categorias', _categoriasRoutes["default"]);
 app.use(function (req, res) {
   res.status(404).json({
     status: 404,
@@ -86,12 +102,6 @@ app.use(function (req, res) {
 });
 app.use(function (err, req, res, next) {
   console.error('[VoxDiario API ERROR]', err);
-  var origin = req.headers.origin;
-  if (origin) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-access-token");
-  }
   res.status(err.status || 500).json({
     status: err.status || 500,
     message: err.message || 'Error interno'

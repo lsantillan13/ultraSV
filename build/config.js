@@ -5,5 +5,5 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports["default"] = void 0;
 var _default = exports["default"] = {
-  SECRET: process.env.JWT_SECRET || 'posts-api'
+  SECRET: process.env.JWT_SECRET
 };

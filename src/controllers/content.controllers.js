@@ -1,6 +1,6 @@
 import Post from '../models/Post.model.js';
 
-const HOME_FIELDS = '_id Entry_Title Entry_Resume Entry_Featured_Image Entry_Category createdAt';
+const HOME_FIELDS = '_id Entry_Title Entry_Resume Entry_Featured_Image Entry_Category createdAt Entry_Is_Portada Entry_Portada_At';
 const CATEGORY_FIELDS = '_id Entry_Title Entry_Resume Entry_Featured_Image Entry_Category createdAt';
 
 const cache = new Map();
@@ -18,6 +18,10 @@ function getFromCache(key) {
 function setCache(key, data) {
   cache.set(key, { data, ts: Date.now() });
 }
+function clearHomeCache() {
+  cache.delete('carousel');
+  cache.delete('component');
+}
 
 async function getWidget(category, limit = 3) {
   const cleanCategory = String(category || '').trim();
@@ -26,11 +30,11 @@ async function getWidget(category, limit = 3) {
   if (cached) return cached;
 
   const posts = await Post.find({ Entry_Category: cleanCategory })
-   .select(CATEGORY_FIELDS)
-   .sort({ createdAt: -1 })
-   .limit(limit)
-   .maxTimeMS(5000)
-   .lean();
+  .select(CATEGORY_FIELDS)
+  .sort({ createdAt: -1 })
+  .limit(limit)
+  .maxTimeMS(5000)
+  .lean();
 
   const result = { portada: posts[0] || null, noticias: posts.slice(1) };
   setCache(cacheKey, result);
@@ -42,37 +46,109 @@ async function getCategoryList(category, limit = 12, cacheKey) {
   if (cached) return cached;
   const cleanCategory = String(category).trim();
   const posts = await Post.find({ Entry_Category: cleanCategory })
-   .select(CATEGORY_FIELDS)
-   .sort({ createdAt: -1 })
-   .limit(limit)
-   .maxTimeMS(5000)
-   .lean();
+  .select(CATEGORY_FIELDS)
+  .sort({ createdAt: -1 })
+  .limit(limit)
+  .maxTimeMS(5000)
+  .lean();
   setCache(cacheKey, posts);
   return posts;
 }
 
+// --- HOME: CAROUSEL CON PORTADA FIJA ---
 export const getLastFivePosts = async (req, res) => {
   try {
     const key = 'carousel';
     const cached = getFromCache(key);
     if (cached) return res.json(cached);
-    const posts = await Post.find().select(HOME_FIELDS).sort({ createdAt: -1 }).limit(5).maxTimeMS(5000).lean();
-    setCache(key, posts);
-    res.json(posts);
+
+    // 1. busca portada activa
+    const portada = await Post.findOne({ Entry_Is_Portada: true })
+     .select(HOME_FIELDS)
+     .sort({ Entry_Portada_At: -1 })
+     .lean();
+
+    // 2. busca el resto excluyendo portada
+    const excludeIds = portada? [portada._id] : [];
+    const limitRest = portada? 4 : 5;
+
+    const rest = await Post.find({ _id: { $nin: excludeIds } })
+     .select(HOME_FIELDS)
+     .sort({ createdAt: -1 })
+     .limit(limitRest)
+     .maxTimeMS(5000)
+     .lean();
+
+    const final = portada? [portada,...rest] : rest;
+
+    setCache(key, final);
+    res.json(final);
   } catch (error) { console.error('[API] getLastFivePosts:', error); res.status(500).json({ message: error.message }); }
 };
 
+// --- HOME: ULTIMAS EXCLUYENDO CAROUSEL ---
 export const getNextEightPosts = async (req, res) => {
   try {
     const key = 'component';
     const cached = getFromCache(key);
     if (cached) return res.json(cached);
-    const posts = await Post.find().select(HOME_FIELDS).sort({ createdAt: -1 }).skip(5).limit(8).maxTimeMS(5000).lean();
+
+    // obtenemos los IDs del carousel para excluirlos
+    const portada = await Post.findOne({ Entry_Is_Portada: true }).select('_id').lean();
+    const restIds = await Post.find({ _id: { $nin: portada? [portada._id] : [] } })
+     .sort({ createdAt: -1 }).limit(portada? 4 : 5).select('_id').lean();
+
+    const carouselIds = [...(portada? [portada._id] : []),...restIds.map(r=>r._id)];
+
+    const posts = await Post.find({ _id: { $nin: carouselIds } })
+     .select(HOME_FIELDS)
+     .sort({ createdAt: -1 })
+     .limit(8)
+     .maxTimeMS(5000)
+     .lean();
+
     setCache(key, posts);
     res.json(posts);
   } catch (error) { console.error('[API] getNextEightPosts:', error); res.status(500).json({ message: error.message }); }
 };
 
+// --- ADMIN: SETEAR PORTADA ---
+export const setPortada = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // saca todas las portadas anteriores (solo 1 a la vez)
+    await Post.updateMany({ Entry_Is_Portada: true }, {
+      $set: { Entry_Is_Portada: false, Entry_Portada_At: null }
+    });
+
+    const updated = await Post.findByIdAndUpdate(id, {
+      $set: { Entry_Is_Portada: true, Entry_Portada_At: new Date() }
+    }, { new: true }).select(HOME_FIELDS);
+
+    if (!updated) return res.status(404).json({ message: 'Post not found' });
+
+    clearHomeCache();
+    res.json({ message: 'Portada actualizada', post: updated });
+  } catch (error) {
+    console.error('[API] setPortada:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const removePortada = async (req, res) => {
+  try {
+    await Post.updateMany({ Entry_Is_Portada: true }, {
+      $set: { Entry_Is_Portada: false, Entry_Portada_At: null }
+    });
+    clearHomeCache();
+    res.json({ message: 'Portada removida, vuelve a modo automático' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// --- RESTO DE TUS CONTROLLERS (igual que tenías) ---
 export const getPoliticalPosts = async (req, res) => {
   try { res.json(await getWidget('Política', 3)); }
   catch (error) { console.error('[API] getPoliticalPosts:', error); res.status(500).json({ message: error.message }); }
@@ -112,7 +188,7 @@ export const getLast = async (req, res) => {
 
 export const getPostById = async (req, res) => {
   try {
-    const { id } = req.params; // <-- FIX: sacamos solo el id
+    const { id } = req.params;
     if (!id || id.length < 10) return res.status(400).json({ message: 'ID inválido' });
     const post = await Post.findById(id).maxTimeMS(5000).lean();
     if (!post) return res.status(404).json({ message: 'Post not found' });
@@ -122,7 +198,7 @@ export const getPostById = async (req, res) => {
 
 export const getLatestPostsByCategory = async (req, res) => {
   try {
-    const { category } = req.params; // <-- FIX: req.params.category
+    const { category } = req.params;
     const cleanCategory = String(category || '').trim();
     if (!cleanCategory) return res.status(400).json({ message: 'Categoría requerida' });
 
@@ -132,11 +208,11 @@ export const getLatestPostsByCategory = async (req, res) => {
     if (cached) return res.json(cached);
 
     const posts = await Post.find({ Entry_Category: cleanCategory })
-     .select(CATEGORY_FIELDS)
-     .sort({ createdAt: -1 })
-     .limit(limit)
-     .maxTimeMS(5000)
-     .lean();
+    .select(CATEGORY_FIELDS)
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .maxTimeMS(5000)
+    .lean();
 
     setCache(cacheKey, posts);
     res.json(posts);
@@ -145,7 +221,7 @@ export const getLatestPostsByCategory = async (req, res) => {
 
 export const getRelatedPost = async (req, res) => {
   try {
-    const { category, postId } = req.params; // <-- FIX: desestructuramos los 2 params
+    const { category, postId } = req.params;
     const cleanCategory = String(category || '').trim();
     if (!cleanCategory ||!postId) return res.status(400).json({ message: 'Parámetros inválidos' });
 
@@ -154,11 +230,11 @@ export const getRelatedPost = async (req, res) => {
     if (cached) return res.json(cached);
 
     const posts = await Post.find({ Entry_Category: cleanCategory, _id: { $ne: postId } })
-     .select(CATEGORY_FIELDS)
-     .sort({ createdAt: -1 })
-     .limit(4)
-     .maxTimeMS(5000)
-     .lean();
+    .select(CATEGORY_FIELDS)
+    .sort({ createdAt: -1 })
+    .limit(4)
+    .maxTimeMS(5000)
+    .lean();
 
     setCache(cacheKey, posts);
     res.json(posts);
@@ -176,4 +252,36 @@ export const getEmprender = async (req, res) => {
 export const getEspectaculos = async (req, res) => {
   try { res.json(await getCategoryList('Espectáculos', 12, 'espectaculos')); }
   catch (error) { console.error('[API] getEspectaculos:', error); res.status(500).json({ message: error.message }); }
+};
+export const getDeportes = async (req, res) => {
+  try { res.json(await getCategoryList('Deportes', 12, 'deportes')); }
+  catch (error) { console.error('[API] getDeportes:', error); res.status(500).json({ message: error.message }); }
+};
+export const getTecnologia = async (req, res) => {
+  try { res.json(await getCategoryList('Tecnología', 12, 'tecnologia')); }
+  catch (error) { console.error('[API] getTecnologia:', error); res.status(500).json({ message: error.message }); }
+};
+export const getCultura = async (req, res) => {
+  try { res.json(await getCategoryList('Cultura', 12, 'cultura')); }
+  catch (error) { console.error('[API] getCultura:', error); res.status(500).json({ message: error.message }); }
+};
+export const getPolitica = async (req, res) => {
+  try { res.json(await getCategoryList('Política', 12, 'politica')); }
+  catch (error) { console.error('[API] getPolitica:', error); res.status(500).json({ message: error.message }); }
+};
+export const getSalud = async (req, res) => {
+  try { res.json(await getCategoryList('Salud', 12, 'salud')); }
+  catch (error) { console.error('[API] getSalud:', error); res.status(500).json({ message: error.message }); }
+};
+export const getEducacion = async (req, res) => {
+  try { res.json(await getCategoryList('Educación', 12, 'educacion')); }
+  catch (error) { console.error('[API] getEducacion:', error); res.status(500).json({ message: error.message }); }
+};
+export const getViajes = async (req, res) => {
+  try { res.json(await getCategoryList('Viajes', 12, 'viajes')); }
+  catch (error) { console.error('[API] getViajes:', error); res.status(500).json({ message: error.message }); }
+};
+export const getGastronomia = async (req, res) => {
+  try { res.json(await getCategoryList('Gastronomía', 12, 'gastronomia')); }
+  catch (error) { console.error('[API] getGastronomia:', error); res.status(500).json({ message: error.message }); }
 };

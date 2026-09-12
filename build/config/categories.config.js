@@ -1,0 +1,56 @@
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.CATEGORY_MAP = exports.ALL_CATEGORIES_SLUG = void 0;
+var CATEGORY_MAP = exports.CATEGORY_MAP = {
+  "anticipacion-politica": "Anticipación Política",
+  "politica": "Política",
+  "internacionales": "Internacionales",
+  "policiales": "Policiales",
+  "judiciales": "Judiciales",
+  "seguridad": "Seguridad",
+  "sociedad": "Sociedad",
+  "ciudad": "Ciudad",
+  "region": "Región",
+  "infraestructura": "Infraestructura",
+  "obras": "Obras",
+  "rutas": "Rutas",
+  "transito-y-transporte": "Tránsito y Transporte",
+  "clima": "Clima",
+  "cooperativas": "Cooperativas",
+  "vivienda-y-habitat": "Vivienda y Hábitat",
+  "inmobiliarias": "Inmobiliarias",
+  "economia": "Economía",
+  "emprender": "Emprender",
+  "vaca-muerta": "Vaca Muerta",
+  "energia": "Energía",
+  "campo-y-produccion": "Campo y Producción",
+  "trabajo": "Trabajo",
+  "gremiales": "Gremiales",
+  "jubilados-y-anses": "Jubilados y ANSES",
+  "salud": "Salud",
+  "educacion": "Educación",
+  "ciencia-y-tecnologia": "Ciencia y Tecnología",
+  "tecnologia": "Tecnología",
+  "deportes": "Deportes",
+  "deporte-local": "Deporte Local",
+  "gaming-y-esports": "Gaming y Esports",
+  "espectaculos": "Espectáculos",
+  "los40": "Los40",
+  "streaming": "Streaming",
+  "cultura": "Cultura",
+  "redes": "Redes",
+  "lifestyle": "Lifestyle",
+  "gastronomia": "Gastronomía",
+  "turismo": "Turismo",
+  "ambiente": "Ambiente",
+  "mascotas": "Mascotas",
+  "genero-y-diversidad": "Género y Diversidad",
+  "servicio-feriados": "Servicio / Feriados",
+  "institucional": "Institucional",
+  "agenda": "Agenda",
+  "loteria-y-quiniela": "Lotería y Quiniela"
+};
+var ALL_CATEGORIES_SLUG = exports.ALL_CATEGORIES_SLUG = Object.keys(CATEGORY_MAP);
