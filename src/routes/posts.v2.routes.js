@@ -11,8 +11,9 @@ const getPostModel = () => {
   return mongoose.models.Post || mongoose.models.post || mongoose.model('Post');
 };
 
-// === FIX 1: LISTADO GENERAL - ESTO ES LO QUE USA TU ADMIN ===
+// 1. LISTADO - ESTE ES EL QUE USA TU /admin Y TE DABA 404
 // GET /api/v2/posts?page=1&limit=50&search=neuquen
+// GET /api/v2/entradas?page=1&limit=50&search=neuquen
 router.get('/', cacheV2, async (req, res) => {
   try {
     const Post = getPostModel();
@@ -39,7 +40,7 @@ router.get('/', cacheV2, async (req, res) => {
 
     res.json({
       data: posts,
-      posts: posts, // compat con tu admin viejo
+      posts: posts,
       total,
       page,
       pages: Math.ceil(total / limit),
@@ -51,46 +52,45 @@ router.get('/', cacheV2, async (req, res) => {
   }
 });
 
-// GET /api/v2/posts/search?q=neuquen
-router.get('/search', async (req, res) => {
-  const Post = getPostModel();
-  const { q, search, limit = 12 } = req.query;
-  const query = q || search;
-  if (!query || query.length < 2) return res.json({ data: [], q: query });
-
-  const l = Math.min(parseInt(limit), 30);
-  const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-
-  const posts = await Post.find({
-    $or: [
-      { Entry_Title: regex },
-      { Entry_Resume: regex },
-      { Entry_Tags: regex }
-    ]
-  })
- .sort({ createdAt: -1 })
- .limit(l)
- .select('Entry_Title Entry_Slug Entry_Category Entry_Featured_Image Entry_Resume createdAt _id')
- .lean();
-
-  res.set('Cache-Control', 'public, max-age=30');
-  res.json({ data: posts, posts: posts, q: query, count: posts.length });
-});
-
-// === FIX 2: LAST - ALIAS PARA TU ADMIN ===
-router.get('/last', cacheV2, async (req, res) => {
+// 2. SEARCH - tu admin lo usa con?search= y con?q=
+router.get('/search', cacheV2, async (req, res) => {
   try {
     const Post = getPostModel();
-    const limit = Math.min(parseInt(req.query.limit) || 1, 10);
-    const posts = await Post.find({}).sort({ createdAt: -1 }).limit(limit).lean();
-    res.json({ data: limit===1? posts[0] : posts, version: 'v2' });
+    const { q, search, limit = 12 } = req.query;
+    const query = q || search;
+    if (!query || query.length < 2) return res.json({ data: [], posts: [], q: query });
+
+    const l = Math.min(parseInt(limit), 30);
+    const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+
+    const posts = await Post.find({
+      $or: [
+        { Entry_Title: regex },
+        { Entry_Resume: regex },
+        { Entry_Tags: regex },
+        { Entry_Category: regex }
+      ]
+    })
+  .sort({ createdAt: -1 })
+  .limit(l)
+  .lean();
+
+    res.json({ data: posts, posts, q: query, count: posts.length });
   } catch (e) {
     res.status(500).json({ message: e.message });
   }
 });
 
-// Compat: /entradas también debe funcionar - agregalo en tu app.js
-// app.use('/api/v2/entradas', router);
+router.get('/last', cacheV2, async (req, res) => {
+  try {
+    const Post = getPostModel();
+    const limit = Math.min(parseInt(req.query.limit) || 1, 10);
+    const posts = await Post.find({}).sort({ createdAt: -1 }).limit(limit).lean();
+    res.json({ data: limit===1? posts[0] : posts, posts: posts, version: 'v2' });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
 
 router.get('/destacada', cacheV2, async (req, res) => {
   try {
@@ -103,10 +103,15 @@ router.get('/destacada', cacheV2, async (req, res) => {
   }
 });
 
-router.get('/slugs', async (req, res) => {
-  const Post = mongoose.models.Post || mongoose.model('Post');
-  const posts = await Post.find({}).select('Entry_Title Entry_Slug').sort({createdAt: -1}).limit(20).lean();
-  res.json(posts);
+router.get('/ultimas', cacheV2, async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 12, 30);
+    const Post = getPostModel();
+    const posts = await Post.find({}).sort({ createdAt: -1 }).limit(limit).lean();
+    res.json({ data: posts, posts, version: 'v2' });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 });
 
 router.get('/mas-leidas', cacheV2, async (req, res) => {
@@ -115,30 +120,40 @@ router.get('/mas-leidas', cacheV2, async (req, res) => {
     const Post = getPostModel();
     const sort = Post.schema.path('views')? { views: -1, createdAt: -1 } : { createdAt: -1 };
     const posts = await Post.find({}).sort(sort).limit(limit).lean();
-    res.json({ data: posts, version: 'v2', total: posts.length });
+    res.json({ data: posts, posts, version: 'v2', total: posts.length });
   } catch (e) {
     res.status(500).json({ message: e.message });
   }
 });
 
-router.get('/ultimas', cacheV2, async (req, res) => {
+router.get('/slugs', cacheV2, async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit) || 12, 30);
     const Post = getPostModel();
-    const posts = await Post.find({}).sort({ createdAt: -1 }).limit(limit).lean();
-    res.json({ data: posts, posts: posts, version: 'v2' });
+    const posts = await Post.find({}).select('Entry_Title Entry_Slug').sort({createdAt: -1}).limit(20).lean();
+    res.json(posts);
   } catch (e) {
     res.status(500).json({ message: e.message });
   }
 });
 
-// === FIX 3: GET POR ID - PARA EDITAR EN ADMIN ===
+// 3. ESTE SIEMPRE ULTIMO - si lo pones arriba te rompe /search y /last
 router.get('/:id', async (req, res) => {
   try {
+    const { id } = req.params;
+    // evita que /search /last caigan acá si alguien cambia el orden
+    if (['search','last','destacada','ultimas','mas-leidas','slugs'].includes(id)) {
+      return res.status(404).json({ message: 'Ruta no encontrada' });
+    }
     const Post = getPostModel();
-    const post = await Post.findById(req.params.id).lean();
+    let post = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      post = await Post.findById(id).lean();
+    }
+    if (!post) {
+      post = await Post.findOne({ Entry_Slug: id }).lean();
+    }
     if (!post) return res.status(404).json({ message: 'No encontrado' });
-    res.json({ data: post });
+    res.json({ data: post, post });
   } catch (e) {
     res.status(500).json({ message: e.message });
   }

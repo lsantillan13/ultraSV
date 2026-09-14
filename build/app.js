@@ -60,7 +60,7 @@ app.use(_express["default"].urlencoded({
 }));
 app.use((0, _morgan["default"])('dev'));
 (0, _initialSetup.createRoles)();
-(0, _trendingCron.startTrendingCron)(); // <-- ACA SE INICIA EL CRON
+(0, _trendingCron.startTrendingCron)();
 
 // PUBLIC ESTATICO PRIMERO
 app.use('/public', _express["default"]["static"]('public'));
@@ -75,7 +75,7 @@ app.get('/health', function (req, res) {
   });
 });
 app.get('/', function (req, res) {
-  res.send("<h1>VoxDiario API v2 Running</h1>\n  <ul>\n    <li><a href=\"/health\">Health</a></li>\n    <li><a href=\"/sitemap.xml\">sitemap.xml</a></li>\n    <li><a href=\"/api/content/carousel\">/api/content/carousel</a></li>\n    <li><a href=\"/api/content/component\">/api/content/component</a></li>\n    <li><a href=\"/api/v2/servicios/cortes\">/api/v2/servicios/cortes</a></li>\n    <li><a href=\"/api/v2/servicios/farmacias\">/api/v2/servicios/farmacias</a></li>\n    <li><a href=\"/api/v2/servicios/rutas\">/api/v2/servicios/rutas</a></li>\n    <li><a href=\"/api/v2/tags\">/api/v2/tags</a></li>\n    <li><a href=\"/api/v2/posts/destacada\">/api/v2/posts/destacada</a></li>\n  </ul>");
+  res.send("<h1>VoxDiario API v2 Running</h1>\n  <ul>\n    <li><a href=\"/health\">Health</a></li>\n    <li><a href=\"/sitemap.xml\">sitemap.xml</a></li>\n    <li><a href=\"/api/content/carousel\">/api/content/carousel</a></li>\n    <li><a href=\"/api/content/component\">/api/content/component</a></li>\n    <li><a href=\"/api/v2/servicios/cortes\">/api/v2/servicios/cortes</a></li>\n    <li><a href=\"/api/v2/servicios/farmacias\">/api/v2/servicios/farmacias</a></li>\n    <li><a href=\"/api/v2/servicios/rutas\">/api/v2/servicios/rutas</a></li>\n    <li><a href=\"/api/v2/tags\">/api/v2/tags</a></li>\n    <li><a href=\"/api/v2/posts/destacada\">/api/v2/posts/destacada</a></li>\n    <li><a href=\"/api/v2/entradas\">/api/v2/entradas (ALIAS FIX)</a></li>\n  </ul>");
 });
 app.use('/', _sitemapRoutes["default"]);
 
@@ -90,10 +90,14 @@ app.use('/api/boletin', _boletinRoutes["default"]);
 // --- RUTAS V2 ---
 app.use('/api/v2/servicios/rutas', _rutasRoutes["default"]);
 app.use('/api/v2/posts', _postsV2Routes["default"]);
+app.use('/api/v2/entradas', _postsV2Routes["default"]); // FIX: alias para que tu admin no de 404
 app.use('/api/v2/views', _viewsRoutes["default"]);
 app.use('/api/v2/tags', _tagsRoutes["default"]);
 app.use('/api/v2/tts', _ttsRoutes["default"]);
 app.use('/api/v2/categorias', _categoriasRoutes["default"]);
+app.use('/api/v2/categorias', _categoriasRoutes["default"]);
+// FIX boletin doble /api -> soporta ambos
+app.use('/api/v2/boletin', _boletinRoutes["default"]);
 app.use(function (req, res) {
   res.status(404).json({
     status: 404,

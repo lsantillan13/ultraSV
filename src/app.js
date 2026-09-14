@@ -17,7 +17,6 @@ import categoriasRouter from './routes/v2/categorias.routes.js';
 import { startTrendingCron } from './crons/trending.cron.js';
 
 import 'dotenv/config'
-
 import cors from 'cors';
 import compression from 'compression';
 import helmet from 'helmet';
@@ -62,7 +61,7 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(morgan('dev'));
 
 createRoles();
-startTrendingCron(); // <-- ACA SE INICIA EL CRON
+startTrendingCron();
 
 // PUBLIC ESTATICO PRIMERO
 app.use('/public', express.static('public'));
@@ -84,6 +83,7 @@ app.get('/', (req, res) => {
     <li><a href="/api/v2/servicios/rutas">/api/v2/servicios/rutas</a></li>
     <li><a href="/api/v2/tags">/api/v2/tags</a></li>
     <li><a href="/api/v2/posts/destacada">/api/v2/posts/destacada</a></li>
+    <li><a href="/api/v2/entradas">/api/v2/entradas (ALIAS FIX)</a></li>
   </ul>`);
 });
 
@@ -100,10 +100,14 @@ app.use('/api/boletin', boletinRoutes);
 // --- RUTAS V2 ---
 app.use('/api/v2/servicios/rutas', rutasRouter);
 app.use('/api/v2/posts', postsV2Router);
+app.use('/api/v2/entradas', postsV2Router); // FIX: alias para que tu admin no de 404
 app.use('/api/v2/views', viewsV2Router);
 app.use('/api/v2/tags', tagsV2Router);
 app.use('/api/v2/tts', ttsRouter);
 app.use('/api/v2/categorias', categoriasRouter);
+app.use('/api/v2/categorias', categoriasRouter);
+// FIX boletin doble /api -> soporta ambos
+app.use('/api/v2/boletin', boletinRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ status: 404, message: 'Ruta no encontrada', path: req.originalUrl });
