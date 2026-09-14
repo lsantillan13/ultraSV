@@ -13,6 +13,31 @@ const getPostModel = () => {
   return mongoose.models.Post || mongoose.models.post || mongoose.model('Post');
 };
 
+// GET /api/v2/posts/search?q=neuquen&limit=12
+router.get('/search', async (req, res) => {
+  const Post = getPostModel();
+  const { q, limit = 12 } = req.query;
+  if (!q || q.length < 2) return res.json({ data: [], q });
+
+  const l = Math.min(parseInt(limit), 30);
+  const regex = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+
+  const posts = await Post.find({
+    $or: [
+      { Entry_Title: regex },
+      { Entry_Resume: regex },
+      { Entry_Tags: regex }
+    ]
+  })
+  .sort({ createdAt: -1 })
+  .limit(l)
+  .select('Entry_Title Entry_Slug Entry_Category Entry_Featured_Image Entry_Resume createdAt')
+  .lean();
+
+  res.set('Cache-Control', 'public, max-age=30');
+  res.json({ data: posts, q, count: posts.length });
+});
+
 // GET /api/v2/posts/destacada
 router.get('/destacada', cacheV2, async (req, res) => {
   try {

@@ -20,7 +20,8 @@ var _tagsRoutes = _interopRequireDefault(require("./routes/v2/tags.routes.js"));
 var _ttsRoutes = _interopRequireDefault(require("./routes/v2/tts.routes.js"));
 var _viewsRoutes = _interopRequireDefault(require("./routes/v2/views.routes.js"));
 var _categoriasRoutes = _interopRequireDefault(require("./routes/v2/categorias.routes.js"));
-var _trendingDecay = require("./jobs/trendingDecay.js");
+var _trendingCron = require("./crons/trending.cron.js");
+require("dotenv/config");
 var _cors = _interopRequireDefault(require("cors"));
 var _compression = _interopRequireDefault(require("compression"));
 var _helmet = _interopRequireDefault(require("helmet"));
@@ -59,7 +60,7 @@ app.use(_express["default"].urlencoded({
 }));
 app.use((0, _morgan["default"])('dev'));
 (0, _initialSetup.createRoles)();
-(0, _trendingDecay.startTrendingJobs)(); // <-- ACA SE INICIA
+(0, _trendingCron.startTrendingCron)(); // <-- ACA SE INICIA EL CRON
 
 // PUBLIC ESTATICO PRIMERO
 app.use('/public', _express["default"]["static"]('public'));

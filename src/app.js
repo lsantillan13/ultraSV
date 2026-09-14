@@ -14,7 +14,9 @@ import tagsV2Router from './routes/v2/tags.routes.js';
 import ttsRouter from './routes/v2/tts.routes.js';
 import viewsV2Router from './routes/v2/views.routes.js';
 import categoriasRouter from './routes/v2/categorias.routes.js';
-import { startTrendingJobs } from './jobs/trendingDecay.js';
+import { startTrendingCron } from './crons/trending.cron.js';
+
+import 'dotenv/config'
 
 import cors from 'cors';
 import compression from 'compression';
@@ -60,7 +62,7 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(morgan('dev'));
 
 createRoles();
-startTrendingJobs(); // <-- ACA SE INICIA
+startTrendingCron(); // <-- ACA SE INICIA EL CRON
 
 // PUBLIC ESTATICO PRIMERO
 app.use('/public', express.static('public'));

@@ -23,16 +23,66 @@ var getPostModel = function getPostModel() {
   return _mongoose["default"].models.Post || _mongoose["default"].models.post || _mongoose["default"].model('Post');
 };
 
+// GET /api/v2/posts/search?q=neuquen&limit=12
+router.get('/search', /*#__PURE__*/function () {
+  var _ref = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(req, res) {
+    var Post, _req$query, q, _req$query$limit, limit, l, regex, posts;
+    return _regenerator().w(function (_context) {
+      while (1) switch (_context.n) {
+        case 0:
+          Post = getPostModel();
+          _req$query = req.query, q = _req$query.q, _req$query$limit = _req$query.limit, limit = _req$query$limit === void 0 ? 12 : _req$query$limit;
+          if (!(!q || q.length < 2)) {
+            _context.n = 1;
+            break;
+          }
+          return _context.a(2, res.json({
+            data: [],
+            q: q
+          }));
+        case 1:
+          l = Math.min(parseInt(limit), 30);
+          regex = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+          _context.n = 2;
+          return Post.find({
+            $or: [{
+              Entry_Title: regex
+            }, {
+              Entry_Resume: regex
+            }, {
+              Entry_Tags: regex
+            }]
+          }).sort({
+            createdAt: -1
+          }).limit(l).select('Entry_Title Entry_Slug Entry_Category Entry_Featured_Image Entry_Resume createdAt').lean();
+        case 2:
+          posts = _context.v;
+          res.set('Cache-Control', 'public, max-age=30');
+          res.json({
+            data: posts,
+            q: q,
+            count: posts.length
+          });
+        case 3:
+          return _context.a(2);
+      }
+    }, _callee);
+  }));
+  return function (_x, _x2) {
+    return _ref.apply(this, arguments);
+  };
+}());
+
 // GET /api/v2/posts/destacada
 router.get('/destacada', cacheV2, /*#__PURE__*/function () {
-  var _ref = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(req, res) {
+  var _ref2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(req, res) {
     var Post, post, _t;
-    return _regenerator().w(function (_context) {
-      while (1) switch (_context.p = _context.n) {
+    return _regenerator().w(function (_context2) {
+      while (1) switch (_context2.p = _context2.n) {
         case 0:
-          _context.p = 0;
+          _context2.p = 0;
           Post = getPostModel();
-          _context.n = 1;
+          _context2.n = 1;
           return Post.findOne({
             portada: true
           }).sort({
@@ -40,72 +90,72 @@ router.get('/destacada', cacheV2, /*#__PURE__*/function () {
             createdAt: -1
           }).lean();
         case 1:
-          post = _context.v;
+          post = _context2.v;
           if (post) {
-            _context.n = 3;
+            _context2.n = 3;
             break;
           }
-          _context.n = 2;
+          _context2.n = 2;
           return Post.findOne({}).sort({
             createdAt: -1
           }).lean();
         case 2:
-          post = _context.v;
+          post = _context2.v;
         case 3:
           res.json({
             data: post,
             version: 'v2'
           });
-          _context.n = 5;
+          _context2.n = 5;
           break;
         case 4:
-          _context.p = 4;
-          _t = _context.v;
+          _context2.p = 4;
+          _t = _context2.v;
           console.error('[v2 destacada]', _t);
           res.status(500).json({
             message: _t.message
           });
         case 5:
-          return _context.a(2);
-      }
-    }, _callee, null, [[0, 4]]);
-  }));
-  return function (_x, _x2) {
-    return _ref.apply(this, arguments);
-  };
-}());
-router.get('/slugs', /*#__PURE__*/function () {
-  var _ref2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(req, res) {
-    var Post, posts;
-    return _regenerator().w(function (_context2) {
-      while (1) switch (_context2.n) {
-        case 0:
-          Post = _mongoose["default"].models.Post || _mongoose["default"].model('Post');
-          _context2.n = 1;
-          return Post.find({}).select('Entry_Title Entry_Slug').sort({
-            createdAt: -1
-          }).limit(20).lean();
-        case 1:
-          posts = _context2.v;
-          res.json(posts);
-        case 2:
           return _context2.a(2);
       }
-    }, _callee2);
+    }, _callee2, null, [[0, 4]]);
   }));
   return function (_x3, _x4) {
     return _ref2.apply(this, arguments);
   };
 }());
+router.get('/slugs', /*#__PURE__*/function () {
+  var _ref3 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(req, res) {
+    var Post, posts;
+    return _regenerator().w(function (_context3) {
+      while (1) switch (_context3.n) {
+        case 0:
+          Post = _mongoose["default"].models.Post || _mongoose["default"].model('Post');
+          _context3.n = 1;
+          return Post.find({}).select('Entry_Title Entry_Slug').sort({
+            createdAt: -1
+          }).limit(20).lean();
+        case 1:
+          posts = _context3.v;
+          res.json(posts);
+        case 2:
+          return _context3.a(2);
+      }
+    }, _callee3);
+  }));
+  return function (_x5, _x6) {
+    return _ref3.apply(this, arguments);
+  };
+}());
 
 // GET /api/v2/posts/mas-leidas
 router.get('/mas-leidas', cacheV2, /*#__PURE__*/function () {
-  var _ref3 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(req, res) {
+  var _ref4 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(req, res) {
     var limit, Post, sort, posts, _t2;
-    return _regenerator().w(function (_context3) {
-      while (1) switch (_context3.p = _context3.n) {
+    return _regenerator().w(function (_context4) {
+      while (1) switch (_context4.p = _context4.n) {
         case 0:
-          _context3.p = 0;
+          _context4.p = 0;
           limit = Math.min(parseInt(req.query.limit) || 5, 10);
           Post = getPostModel(); // si no tenés campo views, ordena por createdAt, no rompe
           sort = Post.schema.path('views') ? {
@@ -114,61 +164,23 @@ router.get('/mas-leidas', cacheV2, /*#__PURE__*/function () {
           } : {
             createdAt: -1
           };
-          _context3.n = 1;
+          _context4.n = 1;
           return Post.find({}).sort(sort).limit(limit).lean();
         case 1:
-          posts = _context3.v;
+          posts = _context4.v;
           res.json({
             data: posts,
             version: 'v2',
             total: posts.length
           });
-          _context3.n = 3;
-          break;
-        case 2:
-          _context3.p = 2;
-          _t2 = _context3.v;
-          console.error('[v2 mas-leidas]', _t2);
-          res.status(500).json({
-            message: _t2.message
-          });
-        case 3:
-          return _context3.a(2);
-      }
-    }, _callee3, null, [[0, 2]]);
-  }));
-  return function (_x5, _x6) {
-    return _ref3.apply(this, arguments);
-  };
-}());
-
-// GET /api/v2/posts/ultimas
-router.get('/ultimas', cacheV2, /*#__PURE__*/function () {
-  var _ref4 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(req, res) {
-    var limit, Post, posts, _t3;
-    return _regenerator().w(function (_context4) {
-      while (1) switch (_context4.p = _context4.n) {
-        case 0:
-          _context4.p = 0;
-          limit = Math.min(parseInt(req.query.limit) || 12, 30);
-          Post = getPostModel();
-          _context4.n = 1;
-          return Post.find({}).sort({
-            createdAt: -1
-          }).limit(limit).lean();
-        case 1:
-          posts = _context4.v;
-          res.json({
-            data: posts,
-            version: 'v2'
-          });
           _context4.n = 3;
           break;
         case 2:
           _context4.p = 2;
-          _t3 = _context4.v;
+          _t2 = _context4.v;
+          console.error('[v2 mas-leidas]', _t2);
           res.status(500).json({
-            message: _t3.message
+            message: _t2.message
           });
         case 3:
           return _context4.a(2);
@@ -177,6 +189,44 @@ router.get('/ultimas', cacheV2, /*#__PURE__*/function () {
   }));
   return function (_x7, _x8) {
     return _ref4.apply(this, arguments);
+  };
+}());
+
+// GET /api/v2/posts/ultimas
+router.get('/ultimas', cacheV2, /*#__PURE__*/function () {
+  var _ref5 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(req, res) {
+    var limit, Post, posts, _t3;
+    return _regenerator().w(function (_context5) {
+      while (1) switch (_context5.p = _context5.n) {
+        case 0:
+          _context5.p = 0;
+          limit = Math.min(parseInt(req.query.limit) || 12, 30);
+          Post = getPostModel();
+          _context5.n = 1;
+          return Post.find({}).sort({
+            createdAt: -1
+          }).limit(limit).lean();
+        case 1:
+          posts = _context5.v;
+          res.json({
+            data: posts,
+            version: 'v2'
+          });
+          _context5.n = 3;
+          break;
+        case 2:
+          _context5.p = 2;
+          _t3 = _context5.v;
+          res.status(500).json({
+            message: _t3.message
+          });
+        case 3:
+          return _context5.a(2);
+      }
+    }, _callee5, null, [[0, 2]]);
+  }));
+  return function (_x9, _x0) {
+    return _ref5.apply(this, arguments);
   };
 }());
 var _default = exports["default"] = router;

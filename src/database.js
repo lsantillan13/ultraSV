@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import 'dotenv/config';
 
 mongoose.set('strictQuery', false); // true depreca queries, false es mas rapido
 
@@ -8,7 +9,7 @@ if (!cached) cached = global.mongoose = { conn: null, promise: null };
 
 async function connectDB() {
   if (cached.conn) {
-    return cached.conn;
+    return cached.conn; 
   }
 
   if (!cached.promise) {

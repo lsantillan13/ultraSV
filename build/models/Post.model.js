@@ -141,7 +141,6 @@ var postSchema = new _mongoose.Schema({
   Entry_Category: {
     type: String,
     trim: true,
-    lowercase: true,
     index: true
   },
   Entry_Category_Label: {

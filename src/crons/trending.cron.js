@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 
 const getPostModel = () => mongoose.models.Post || mongoose.model('Post');
 
-export const startTrendingJobs = () => {
+export const startTrendingCron = () => {  // <-- RENOMBRADO para que coincida con app.js
   cron.schedule('0 * * * *', async () => {
     try {
       const Post = getPostModel();

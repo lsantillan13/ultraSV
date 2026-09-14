@@ -91,7 +91,7 @@ const postSchema = new Schema({
   Entry_Featured_Image: { type: String, trim: true },
 
   // --- CATEGORÍA NORMALIZADA ---
-  Entry_Category: { type: String, trim: true, lowercase: true, index: true },
+  Entry_Category: { type: String, trim: true, index: true },
   Entry_Category_Label: { type: String, trim: true },
   Entry_Grupo: { type: String, trim: true },
 

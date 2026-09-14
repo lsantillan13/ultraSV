@@ -1,123 +1,104 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
-
 const router = Router();
 const getPostModel = () => mongoose.models.Post || mongoose.model('Post');
 
-const normalize = (str = '') =>
-  decodeURIComponent(str || '')
-   .toLowerCase()
-   .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-   .replace(/\s+/g, '-')
-   .trim();
+const CATEGORIAS = [
+  { slug: 'anticipacion-politica', label: 'Anticipación Política', grupo: 'POLÍTICA Y ACTUALIDAD' },
+  { slug: 'politica', label: 'Política', grupo: 'POLÍTICA Y ACTUALIDAD' },
+  { slug: 'internacionales', label: 'Internacionales', grupo: 'POLÍTICA Y ACTUALIDAD' },
+  { slug: 'policiales', label: 'Policiales', grupo: 'POLICIAL / JUDICIAL' },
+  { slug: 'judiciales', label: 'Judiciales', grupo: 'POLICIAL / JUDICIAL' },
+  { slug: 'seguridad', label: 'Seguridad', grupo: 'POLICIAL / JUDICIAL' },
+  { slug: 'sociedad', label: 'Sociedad', grupo: 'NEUQUÉN' },
+  { slug: 'ciudad', label: 'Ciudad', grupo: 'NEUQUÉN' },
+  { slug: 'region', label: 'Región', grupo: 'NEUQUÉN' },
+  { slug: 'infraestructura', label: 'Infraestructura', grupo: 'NEUQUÉN' },
+  { slug: 'obras', label: 'Obras', grupo: 'NEUQUÉN' },
+  { slug: 'rutas', label: 'Rutas', grupo: 'NEUQUÉN' },
+  { slug: 'transito-y-transporte', label: 'Tránsito y Transporte', grupo: 'NEUQUÉN' },
+  { slug: 'clima', label: 'Clima', grupo: 'NEUQUÉN' },
+  { slug: 'cooperativas', label: 'Cooperativas', grupo: 'NEUQUÉN' },
+  { slug: 'vivienda-y-habitat', label: 'Vivienda y Hábitat', grupo: 'NEUQUÉN' },
+  { slug: 'inmobiliarias', label: 'Inmobiliarias', grupo: 'NEUQUÉN' },
+  { slug: 'economia', label: 'Economía', grupo: 'ECONOMÍA' },
+  { slug: 'emprender', label: 'Emprender', grupo: 'ECONOMÍA' },
+  { slug: 'vaca-muerta', label: 'Vaca Muerta', grupo: 'ECONOMÍA' },
+  { slug: 'energia', label: 'Energía', grupo: 'ECONOMÍA' },
+  { slug: 'campo-y-produccion', label: 'Campo y Producción', grupo: 'ECONOMÍA' },
+  { slug: 'trabajo', label: 'Trabajo', grupo: 'ECONOMÍA' },
+  { slug: 'gremiales', label: 'Gremiales', grupo: 'ECONOMÍA' },
+  { slug: 'jubilados-y-anses', label: 'Jubilados y ANSES', grupo: 'ECONOMÍA' },
+  { slug: 'salud', label: 'Salud', grupo: 'SERVICIO' },
+  { slug: 'educacion', label: 'Educación', grupo: 'SERVICIO' },
+  { slug: 'ciencia-y-tecnologia', label: 'Ciencia y Tecnología', grupo: 'SERVICIO' },
+  { slug: 'tecnologia', label: 'Tecnología', grupo: 'SERVICIO' },
+  { slug: 'servicio-feriados', label: 'Servicio / Feriados', grupo: 'SERVICIO' },
+  { slug: 'loteria-y-quiniela', label: 'Lotería y Quiniela', grupo: 'SERVICIO' },
+  { slug: 'deportes', label: 'Deportes', grupo: 'DEPORTES' },
+  { slug: 'deporte-local', label: 'Deporte Local', grupo: 'DEPORTES' },
+  { slug: 'gaming-y-esports', label: 'Gaming y Esports', grupo: 'DEPORTES' },
+  { slug: 'espectaculos', label: 'Espectáculos', grupo: 'CULTURA Y SHOW' },
+  { slug: 'los40', label: 'Los40', grupo: 'CULTURA Y SHOW' },
+  { slug: 'streaming', label: 'Streaming', grupo: 'CULTURA Y SHOW' },
+  { slug: 'cultura', label: 'Cultura', grupo: 'CULTURA Y SHOW' },
+  { slug: 'redes', label: 'Redes', grupo: 'CULTURA Y SHOW' },
+  { slug: 'agenda', label: 'Agenda', grupo: 'CULTURA Y SHOW' },
+  { slug: 'lifestyle', label: 'Lifestyle', grupo: 'ESTILO DE VIDA' },
+  { slug: 'gastronomia', label: 'Gastronomía', grupo: 'ESTILO DE VIDA' },
+  { slug: 'turismo', label: 'Turismo', grupo: 'ESTILO DE VIDA' },
+  { slug: 'ambiente', label: 'Ambiente', grupo: 'ESTILO DE VIDA' },
+  { slug: 'mascotas', label: 'Mascotas', grupo: 'ESTILO DE VIDA' },
+  { slug: 'genero-y-diversidad', label: 'Género y Diversidad', grupo: 'ESTILO DE VIDA' },
+  { slug: 'institucional', label: 'Institucional', grupo: 'INSTITUCIONAL' },
+];
 
-// MAPEO REAL -> como está en tu DB o como queremos buscarlo
-const CATEGORIAS_CONFIG = {
-  'politica': { type: 'category', value: 'Política', search: 'politica' },
-  'infraestructura': { type: 'tag_or_search', value: 'infraestructura', search: 'infraestructura' },
-  'sociedad': { type: 'category', value: 'Sociedad', search: 'sociedad' },
-  'economia': { type: 'category', value: 'Economía', search: 'economia' },
-  'vaca-muerta': { type: 'tag_or_search', value: 'vaca muerta', search: 'vaca muerta' },
-  'federal-a': { type: 'tag_or_search', value: 'federal a', search: 'federal a' },
-  'lifune': { type: 'tag_or_search', value: 'lifune', search: 'lifune' },
-  'rugby': { type: 'tag_or_search', value: 'rugby', search: 'rugby' },
-  'voley': { type: 'tag_or_search', value: 'voley', search: 'voley' },
-  'policiales': { type: 'category', value: 'Policiales', search: 'policiales' },
-  'deportes': { type: 'category', value: 'Deportes', search: 'deportes' },
-};
-
-const buildFilter = (config) => {
-  if (config.type === 'category') {
-    // Con collation strength 1, esto matchea Politica, Política, politica, POLITICA
-    return { Entry_Category: config.search };
-  }
-  // tag_or_search -> busca en tags, titulo y categoria
-  if (config.type === 'tag_or_search') {
-    const v = config.search;
-    return {
-      $or: [
-        { Entry_Tags: { $regex: v, $options: 'i' } },
-        { Entry_Category: { $regex: v, $options: 'i' } },
-        { Entry_Title: { $regex: v, $options: 'i' } },
-      ]
-    };
-  }
-  return {};
-};
-
-// GET /api/v2/categorias -> debug, te dice cuantas tenes por cada una MERGEADO
 router.get('/', async (req, res) => {
   try {
     const Post = getPostModel();
-
-    // distinct real
-    const distinctCats = await Post.distinct('Entry_Category');
-
-    // counts mergeando con normalize para que Economia + Economía se sumen
-    const all = await Post.aggregate([
-      { $group: { _id: "$Entry_Category", count: { $sum: 1 } } }
+    const counts = await Post.aggregate([
+      { $group: { _id: "$Entry_Category", total: { $sum: 1 } } }
     ]);
-
-    const merged = new Map();
-    for (const { _id, count } of all) {
-      if (!_id) continue;
-      const slug = normalize(_id);
-      const current = merged.get(slug) || { slug, count: 0, queries: [] };
-      current.count += count;
-      current.queries.push(_id);
-      merged.set(slug, current);
-    }
-
-    const counts = await Promise.all(
-      Object.entries(CATEGORIAS_CONFIG).map(async ([slug, cfg]) => {
-        const c = await Post.countDocuments(buildFilter(cfg))
-         .collation({ locale: 'es', strength: 1 });
-        return { slug, query: cfg.value, count: c };
-      })
-    );
-
-    res.json({ counts: counts.sort((a,b) => b.count - a.count), distinctCats, merged: Array.from(merged.values()) });
+    const mapCount = Object.fromEntries(counts.map(c => [c._id, c.total]));
+    const data = CATEGORIAS.map(cat => ({
+      ...cat,
+      total: mapCount[cat.slug] || 0,
+      value: cat.slug
+    }));
+    res.set('Cache-Control', 'public, max-age=60, s-maxage=300');
+    res.json({ data });
   } catch (e) {
     res.status(500).json({ message: e.message });
   }
 });
 
-// GET /api/v2/categorias/:slug -> trae 20 de esa categoria
 router.get('/:slug', async (req, res) => {
   try {
     const Post = getPostModel();
-    const rawSlug = req.params.slug;
+    const slug = req.params.slug.toLowerCase();
+    const cat = CATEGORIAS.find(c => c.slug === slug);
+    if (!cat) return res.status(404).json({ message: 'Categoria no existe', disponibles: CATEGORIAS.map(c=>c.slug) });
+    
     const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    
+    const [posts, total] = await Promise.all([
+      Post.find({ Entry_Category: slug })
+        .sort({ createdAt: -1 })
+        .skip((page-1)*limit)
+        .limit(limit)
+        .select('Entry_Title Entry_Slug Entry_Category Entry_Featured_Image Entry_Resume Entry_ID createdAt views trendingScore')
+        .lean(),
+      Post.countDocuments({ Entry_Category: slug })
+    ]);
 
-    // ESTO ARREGLA /política -> /politica
-    const key = normalize(rawSlug);
-
-    const config = CATEGORIAS_CONFIG[key];
-
-    if (!config) {
-      return res.status(404).json({
-        message: `Categoria ${rawSlug} (${key}) no configurada`,
-        disponibles: Object.keys(CATEGORIAS_CONFIG)
-      });
-    }
-
-    const filter = buildFilter(config);
-
-    const posts = await Post.find(filter)
-     .collation({ locale: 'es', strength: 1 }) // ignora tildes y mayusculas
-     .sort({ createdAt: -1 })
-     .limit(limit)
-     .select('Entry_Title Entry_Slug Entry_Category Entry_Featured_Image Entry_Resume Entry_ID Entry_Tags createdAt')
-     .lean();
-
-    res.json({
-      category: key, // siempre sin tilde
-      realQuery: config.value, // con tilde para mostrar en front
-      count: posts.length,
-      data: posts
+    res.set('Cache-Control', 'public, max-age=30, s-maxage=120');
+    res.json({ 
+      categoria: cat, 
+      data: posts,
+      pagination: { page, limit, total, pages: Math.ceil(total/limit) }
     });
   } catch (e) {
-    console.error('[CATEGORIAS]', e);
     res.status(500).json({ message: e.message });
   }
 });
