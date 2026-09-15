@@ -37,7 +37,7 @@ var getPostModel = function getPostModel() {
 };
 var slugify = function slugify() {
   var text = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
-  return text.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 120);
+  return text.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 110);
 };
 
 // ==========================
@@ -822,56 +822,72 @@ router.get('/slug/:slug', cacheV2, /*#__PURE__*/function () {
   };
 }());
 
-// ===== FIX SLUG + PUT + DELETE =====
+// ===== FIX DEFINITIVO: PRESERVA -mu2t10ll =====
 router.put('/:id', /*#__PURE__*/function () {
   var _ref14 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14(req, res) {
-    var Post, body, updated, _t14;
+    var Post, existing, body, oldSlug, parts, last, hasShortId, base, updated, _t14;
     return _regenerator().w(function (_context14) {
       while (1) switch (_context14.p = _context14.n) {
         case 0:
           _context14.p = 0;
           Post = getPostModel();
-          body = _objectSpread({}, req.body); // Si mandan titulo y no slug, o mandan slug vacío, no lo pises
-          if (!body.Entry_Slug || String(body.Entry_Slug).trim() === '' || body.Entry_Slug === 'undefined') {
-            if (body.Entry_Title) {
-              body.Entry_Slug = slugify(body.Entry_Title);
-            } else {
-              delete body.Entry_Slug; // mantiene el que ya tenía
-            }
-          } else {
-            body.Entry_Slug = slugify(body.Entry_Slug);
-          }
           _context14.n = 1;
-          return Post.findByIdAndUpdate(req.params.id, body, {
-            "new": true
-          });
+          return Post.findById(req.params.id).lean();
         case 1:
-          updated = _context14.v;
-          if (updated) {
+          existing = _context14.v;
+          if (existing) {
             _context14.n = 2;
             break;
           }
           return _context14.a(2, res.status(404).json({
-            message: 'No encontrado para update'
+            message: 'No encontrado'
           }));
         case 2:
+          body = _objectSpread({}, req.body); // Detecta el shortId viejo: mu2t10ll
+          oldSlug = existing.Entry_Slug || '';
+          parts = oldSlug.split('-');
+          last = parts[parts.length - 1] || '';
+          hasShortId = /^[a-z0-9]{6,10}$/.test(last) && oldSlug.includes('-');
+          base = '';
+          if (body.Entry_Slug && String(body.Entry_Slug).trim() && String(body.Entry_Slug) !== 'undefined') {
+            base = slugify(body.Entry_Slug);
+          } else if (body.Entry_Title) {
+            base = slugify(body.Entry_Title);
+          } else {
+            base = slugify(existing.Entry_Title);
+          }
+
+          // Saca cualquier shortId que haya quedado en el base para no duplicar
+          base = base.replace(/-[a-z0-9]{6,10}$/, '');
+          if (hasShortId) {
+            body.Entry_Slug = "".concat(base, "-").concat(last); // respeta el mu2t10ll viejo
+          } else {
+            // si no tenia, le crea uno con los ultimos 6 del ObjectId
+            body.Entry_Slug = "".concat(base, "-").concat(req.params.id.slice(-6).toLowerCase());
+          }
+          _context14.n = 3;
+          return Post.findByIdAndUpdate(req.params.id, body, {
+            "new": true
+          });
+        case 3:
+          updated = _context14.v;
           res.json({
             data: updated,
             post: updated
           });
-          _context14.n = 4;
+          _context14.n = 5;
           break;
-        case 3:
-          _context14.p = 3;
+        case 4:
+          _context14.p = 4;
           _t14 = _context14.v;
           console.error('[PUT v2]', _t14);
           res.status(500).json({
             message: _t14.message
           });
-        case 4:
+        case 5:
           return _context14.a(2);
       }
-    }, _callee14, null, [[0, 3]]);
+    }, _callee14, null, [[0, 4]]);
   }));
   return function (_x29, _x30) {
     return _ref14.apply(this, arguments);
@@ -886,7 +902,6 @@ router["delete"]('/:id', /*#__PURE__*/function () {
           _context15.p = 0;
           Post = getPostModel();
           id = req.params.id;
-          deleted = null;
           if (!_mongoose["default"].Types.ObjectId.isValid(id)) {
             _context15.n = 2;
             break;
@@ -894,8 +909,8 @@ router["delete"]('/:id', /*#__PURE__*/function () {
           _context15.n = 1;
           return Post.findByIdAndDelete(id);
         case 1:
-          deleted = _context15.v;
-          _context15.n = 6;
+          _t15 = _context15.v;
+          _context15.n = 4;
           break;
         case 2:
           _context15.n = 3;
@@ -904,21 +919,10 @@ router["delete"]('/:id', /*#__PURE__*/function () {
           });
         case 3:
           _t15 = _context15.v;
-          if (_t15) {
-            _context15.n = 5;
-            break;
-          }
-          _context15.n = 4;
-          return Post.findOneAndDelete({
-            _id: id
-          });
         case 4:
-          _t15 = _context15.v;
-        case 5:
           deleted = _t15;
-        case 6:
           if (deleted) {
-            _context15.n = 7;
+            _context15.n = 5;
             break;
           }
           return _context15.a(2, res.status(404).json({
@@ -926,24 +930,24 @@ router["delete"]('/:id', /*#__PURE__*/function () {
             message: 'ID no existe',
             path: req.originalUrl
           }));
-        case 7:
+        case 5:
           res.json({
             ok: true,
             message: 'Borrado V2',
             id: id
           });
-          _context15.n = 9;
+          _context15.n = 7;
           break;
-        case 8:
-          _context15.p = 8;
+        case 6:
+          _context15.p = 6;
           _t16 = _context15.v;
           res.status(500).json({
             message: _t16.message
           });
-        case 9:
+        case 7:
           return _context15.a(2);
       }
-    }, _callee15, null, [[0, 8]]);
+    }, _callee15, null, [[0, 6]]);
   }));
   return function (_x31, _x32) {
     return _ref15.apply(this, arguments);
@@ -991,30 +995,43 @@ router.get('/:id', /*#__PURE__*/function () {
         case 5:
           post = _context16.v;
         case 6:
+          if (!(!post && /^[a-z0-9]{6,10}$/.test(id))) {
+            _context16.n = 8;
+            break;
+          }
+          _context16.n = 7;
+          return Post.findOne({
+            Entry_Slug: {
+              $regex: "-".concat(id, "$")
+            }
+          }).lean();
+        case 7:
+          post = _context16.v;
+        case 8:
           if (post) {
-            _context16.n = 7;
+            _context16.n = 9;
             break;
           }
           return _context16.a(2, res.status(404).json({
             message: 'No encontrado'
           }));
-        case 7:
+        case 9:
           res.json({
             data: post,
             post: post
           });
-          _context16.n = 9;
+          _context16.n = 11;
           break;
-        case 8:
-          _context16.p = 8;
+        case 10:
+          _context16.p = 10;
           _t18 = _context16.v;
           res.status(500).json({
             message: _t18.message
           });
-        case 9:
+        case 11:
           return _context16.a(2);
       }
-    }, _callee16, null, [[0, 8]]);
+    }, _callee16, null, [[0, 10]]);
   }));
   return function (_x33, _x34) {
     return _ref16.apply(this, arguments);

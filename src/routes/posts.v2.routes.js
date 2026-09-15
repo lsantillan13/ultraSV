@@ -11,7 +11,7 @@ const getPostModel = () => {
   return mongoose.models.Post || mongoose.models.post || mongoose.model('Post');
 };
 
-const slugify = (text = '') => text.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').substring(0,120);
+const slugify = (text = '') => text.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').substring(0,110);
 
 // ==========================
 // 1. LISTADO
@@ -189,25 +189,41 @@ router.get('/slug/:slug', cacheV2, async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-// ===== FIX SLUG + PUT + DELETE =====
+// ===== FIX DEFINITIVO: PRESERVA -mu2t10ll =====
 router.put('/:id', async (req, res) => {
   try {
     const Post = getPostModel();
-    const body = {...req.body };
+    const existing = await Post.findById(req.params.id).lean();
+    if (!existing) return res.status(404).json({ message: 'No encontrado' });
 
-    // Si mandan titulo y no slug, o mandan slug vacío, no lo pises
-    if (!body.Entry_Slug || String(body.Entry_Slug).trim() === '' || body.Entry_Slug === 'undefined') {
-      if (body.Entry_Title) {
-        body.Entry_Slug = slugify(body.Entry_Title);
-      } else {
-        delete body.Entry_Slug; // mantiene el que ya tenía
-      }
+    const body = { ...req.body };
+    
+    // Detecta el shortId viejo: mu2t10ll
+    const oldSlug = existing.Entry_Slug || '';
+    const parts = oldSlug.split('-');
+    const last = parts[parts.length - 1] || '';
+    const hasShortId = /^[a-z0-9]{6,10}$/.test(last) && oldSlug.includes('-');
+    
+    let base = '';
+    if (body.Entry_Slug && String(body.Entry_Slug).trim() && String(body.Entry_Slug) !== 'undefined') {
+      base = slugify(body.Entry_Slug);
+    } else if (body.Entry_Title) {
+      base = slugify(body.Entry_Title);
     } else {
-      body.Entry_Slug = slugify(body.Entry_Slug);
+      base = slugify(existing.Entry_Title);
+    }
+
+    // Saca cualquier shortId que haya quedado en el base para no duplicar
+    base = base.replace(/-[a-z0-9]{6,10}$/, '');
+
+    if (hasShortId) {
+      body.Entry_Slug = `${base}-${last}`; // respeta el mu2t10ll viejo
+    } else {
+      // si no tenia, le crea uno con los ultimos 6 del ObjectId
+      body.Entry_Slug = `${base}-${req.params.id.slice(-6).toLowerCase()}`;
     }
 
     const updated = await Post.findByIdAndUpdate(req.params.id, body, { new: true });
-    if (!updated) return res.status(404).json({ message: 'No encontrado para update' });
     res.json({ data: updated, post: updated });
   } catch (e) {
     console.error('[PUT v2]', e);
@@ -219,9 +235,7 @@ router.delete('/:id', async (req, res) => {
   try {
     const Post = getPostModel();
     const { id } = req.params;
-    let deleted = null;
-    if (mongoose.Types.ObjectId.isValid(id)) deleted = await Post.findByIdAndDelete(id);
-    else deleted = await Post.findOneAndDelete({ Entry_Slug: id }) || await Post.findOneAndDelete({ _id: id });
+    let deleted = mongoose.Types.ObjectId.isValid(id) ? await Post.findByIdAndDelete(id) : await Post.findOneAndDelete({ Entry_Slug: id });
     if (!deleted) return res.status(404).json({ status: 404, message: 'ID no existe', path: req.originalUrl });
     res.json({ ok: true, message: 'Borrado V2', id });
   } catch (e) { res.status(500).json({ message: e.message }); }
@@ -234,6 +248,10 @@ router.get('/:id', async (req, res) => {
     const Post = getPostModel();
     let post = mongoose.Types.ObjectId.isValid(id)? await Post.findById(id).lean() : null;
     if (!post) post = await Post.findOne({ Entry_Slug: id }).lean();
+    // fallback: busca por shortId mu2t10ll
+    if (!post && /^[a-z0-9]{6,10}$/.test(id)) {
+      post = await Post.findOne({ Entry_Slug: { $regex: `-${id}$` } }).lean();
+    }
     if (!post) return res.status(404).json({ message: 'No encontrado' });
     res.json({ data: post, post });
   } catch (e) { res.status(500).json({ message: e.message }); }
