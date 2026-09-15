@@ -8,6 +8,8 @@ var _mongoose = require("mongoose");
 var corteSchema = new _mongoose.Schema({
   horario: String,
   // De 07:00 a 14:00 h
+  desde: String,
+  hasta: String,
   zona: String,
   detalle: String,
   autorizado: {
@@ -22,13 +24,11 @@ var boletinSchema = new _mongoose.Schema({
     type: String,
     required: true
   },
-  // DOMINGO 13 DE SEPTIEMBRE
   titulo: {
     type: String,
     "default": 'CORTES PROGRAMADOS'
   },
   cortes: [corteSchema],
-  // <--- N cortes, 1, 5, 12, lo que venga
   imagenUrl: String,
   activo: {
     type: Boolean,

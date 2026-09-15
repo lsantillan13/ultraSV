@@ -1,45 +1,44 @@
-// routes/boletin.js - FIX V2
-const express = require('express');
-const router = express.Router();
-const Boletin = require('../models/Boletin'); // o como lo tengas
-const auth = require('../middleware/auth'); // tu middleware de token
+import express from 'express';
+import Boletin from '../models/Boletin.model.js';
+import { authJwt } from '../middlewares/authJwt.js';
 
-// GET - ya lo tenés, dejalo
+const router = express.Router();
+
 router.get('/actual', async (req, res) => {
   try {
-    const boletin = await Boletin.findOne().sort({ createdAt: -1 });
-    if (!boletin) return res.status(404).json({ message: 'No hay boletin' });
-    res.json(boletin);
+    const b = await Boletin.findOne({ activo: true }).sort({ createdAt: -1 });
+    if (!b) return res.status(200).json({ fecha: null, cortes: [], titulo: 'CORTES PROGRAMADOS' });
+    res.json(b);
   } catch (e) {
     res.status(500).json({ message: e.message });
   }
 });
 
-// POST - ESTE ES EL QUE TE FALTA - con /actual y sin /
+router.get('/', async (req, res) => {
+  try {
+    const b = await Boletin.findOne({ activo: true }).sort({ createdAt: -1 });
+    if (!b) return res.status(200).json({ fecha: null, cortes: [] });
+    res.json(b);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
 const saveBoletin = async (req, res) => {
   try {
-    // NO hagas JSON.parse(req.body) - req.body ya es objeto
     const { fecha, cortes, titulo } = req.body;
-    
-    if (!fecha || !cortes || !cortes.length) {
+    if (!fecha ||!Array.isArray(cortes) || cortes.length === 0) {
       return res.status(400).json({ message: 'Falta fecha o cortes' });
     }
-
-    const nuevo = await Boletin.create({
-      fecha,
-      cortes,
-      titulo: titulo || "CORTES PROGRAMADOS",
-      createdAt: new Date()
-    });
-
-    res.json(nuevo);
+    await Boletin.updateMany({}, { activo: false });
+    const nuevo = await Boletin.create({ fecha, cortes, titulo, activo: true });
+    res.status(201).json(nuevo);
   } catch (e) {
-    console.error("ERROR BOLETIN:", e);
     res.status(500).json({ message: e.message });
   }
 };
 
-router.post('/actual', auth, saveBoletin);
-router.post('/', auth, saveBoletin); // fallback para tu ruta vieja
+router.post('/actual', authJwt, saveBoletin);
+router.post('/', authJwt, saveBoletin);
 
-module.exports = router;
+export default router;

@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.verifyToken = exports.isModerator = exports.isAdmin = void 0;
+exports.verifyToken = exports.isModerator = exports.isAdmin = exports["default"] = exports.authJwt = void 0;
 var _jsonwebtoken = _interopRequireDefault(require("jsonwebtoken"));
 var _config = _interopRequireDefault(require("../config.js"));
 var _UserModel = _interopRequireDefault(require("../models/User.model.js"));
@@ -175,3 +175,5 @@ var isAdmin = exports.isAdmin = /*#__PURE__*/function () {
     return _ref3.apply(this, arguments);
   };
 }();
+var authJwt = exports.authJwt = verifyToken;
+var _default = exports["default"] = verifyToken;

@@ -50,3 +50,6 @@ export const isAdmin = async (req, res, next) => {
   }
   return res.status(403).json({message: 'Require Admin role'});
 };
+
+export const authJwt = verifyToken;
+export default verifyToken;
