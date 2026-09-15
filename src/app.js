@@ -15,6 +15,7 @@ import ttsRouter from './routes/v2/tts.routes.js';
 import viewsV2Router from './routes/v2/views.routes.js';
 import categoriasRouter from './routes/v2/categorias.routes.js';
 import { startTrendingCron } from './crons/trending.cron.js';
+import axios from 'axios';
 
 import 'dotenv/config'
 import cors from 'cors';
@@ -63,7 +64,79 @@ app.use(morgan('dev'));
 createRoles();
 startTrendingCron();
 
-// PUBLIC ESTATICO PRIMERO
+// ========== FIX SEO BOTS PARA WHATSAPP / FB ==========
+const BOT_REGEX = /facebookexternalhit|Twitterbot|WhatsApp|LinkedInBot|Slackbot|TelegramBot|Googlebot|bingbot/i;
+const SITE_CANONICAL = 'https://voxdiario.com';
+
+app.use(async (req, res, next) => {
+  const ua = req.headers['user-agent'] || '';
+  if (!BOT_REGEX.test(ua)) return next();
+
+  // Solo nos interesan rutas tipo /region/slug-de-nota o /politica/slug
+  // No interferir con /api/*
+  if (req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/sitemap')) {
+    return next();
+  }
+  if (req.path === '/' || req.path === '/public') return next();
+
+  const slug = req.path.split('/').pop();
+  if (!slug || slug.length < 5) return next();
+
+  try {
+    // intenta por slug directo (tu ruta buena de V2)
+    let post = null;
+    try {
+      const { data } = await axios.get(`http://localhost:${process.env.PORT || 8080}/api/v2/entradas/slug/${slug}`, { timeout: 3000 });
+      post = data?.data || data?.posts?.[0] || data;
+    } catch {
+      // fallback externo si falla interno
+      const { data } = await axios.get(`https://ultraserver.koyeb.app/api/v2/entradas/slug/${slug}`, { timeout: 4000 });
+      post = data?.data || data?.posts?.[0] || data;
+    }
+
+    if (!post?.Entry_Title) return next();
+
+    const title = String(post.Entry_Title).replace(/"/g, '&quot;');
+    const desc = String(post.Entry_Resume || post.Entry_Body_Resume_Plain || '').slice(0, 160).replace(/"/g, '&quot;');
+    const image = post.Entry_Featured_Image || `${SITE_CANONICAL}/og-default.jpg`;
+    const url = `${SITE_CANONICAL}${req.path}`;
+
+    return res.status(200).send(`<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>${title} | Vox Diario</title>
+<meta name="description" content="${desc}" />
+<link rel="canonical" href="${url}" />
+<meta property="og:title" content="${title}" />
+<meta property="og:description" content="${desc}" />
+<meta property="og:image" content="${image}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:url" content="${url}" />
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Vox Diario" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${title}" />
+<meta name="twitter:description" content="${desc}" />
+<meta name="twitter:image" content="${image}" />
+</head>
+<body>
+<h1>${title}</h1>
+<p>${desc}</p>
+<img src="${image}" alt="${title}" />
+<p><a href="${url}">Ver nota completa en Vox Diario</a></p>
+<script>window.location.href="${url}"</script>
+</body>
+</html>`);
+  } catch (e) {
+    console.warn('[SEO BOT] fail', e.message);
+    return next();
+  }
+});
+// ========== FIN FIX SEO ==========
+
+// PUBLIC ESTATICO
 app.use('/public', express.static('public'));
 
 // HEALTH
@@ -77,13 +150,9 @@ app.get('/', (req, res) => {
     <li><a href="/health">Health</a></li>
     <li><a href="/sitemap.xml">sitemap.xml</a></li>
     <li><a href="/api/content/carousel">/api/content/carousel</a></li>
-    <li><a href="/api/content/component">/api/content/component</a></li>
-    <li><a href="/api/v2/servicios/cortes">/api/v2/servicios/cortes</a></li>
-    <li><a href="/api/v2/servicios/farmacias">/api/v2/servicios/farmacias</a></li>
     <li><a href="/api/v2/servicios/rutas">/api/v2/servicios/rutas</a></li>
-    <li><a href="/api/v2/tags">/api/v2/tags</a></li>
     <li><a href="/api/v2/posts/destacada">/api/v2/posts/destacada</a></li>
-    <li><a href="/api/v2/entradas">/api/v2/entradas (ALIAS FIX)</a></li>
+    <li><a href="/api/v2/entradas">/api/v2/entradas</a></li>
   </ul>`);
 });
 
@@ -100,14 +169,15 @@ app.use('/api/boletin', boletinRoutes);
 // --- RUTAS V2 ---
 app.use('/api/v2/servicios/rutas', rutasRouter);
 app.use('/api/v2/posts', postsV2Router);
-app.use('/api/v2/entradas', postsV2Router); // FIX: alias para que tu admin no de 404
+app.use('/api/v2/entradas', postsV2Router);
 app.use('/api/v2/views', viewsV2Router);
 app.use('/api/v2/tags', tagsV2Router);
 app.use('/api/v2/tts', ttsRouter);
 app.use('/api/v2/categorias', categoriasRouter);
-app.use('/api/v2/categorias', categoriasRouter);
-// FIX boletin doble /api -> soporta ambos
+
+// FIX: boletin soporta /actual y / - tu Dashboard usa ambos
 app.use('/api/v2/boletin', boletinRoutes);
+app.use('/api/boletin', boletinRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ status: 404, message: 'Ruta no encontrada', path: req.originalUrl });
