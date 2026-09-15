@@ -13,7 +13,6 @@ const getPostModel = () => {
 
 // ==========================
 // 1. LISTADO - /admin
-// GET /api/v2/posts?page=1&limit=50&search=neuquen
 // ==========================
 router.get('/', cacheV2, async (req, res) => {
   try {
@@ -93,22 +92,14 @@ router.get('/last', cacheV2, async (req, res) => {
 });
 
 // ==========================
-// 3. CAROUSEL OPCIONAL - 1 GRANDE + 4 CHICAS
-// Si no hay nada elegido, cae por fecha (tu idea de portada fija)
-// GET /api/v2/posts/carousel
+// 3. CAROUSEL / PORTADA / DESTACADAS
 // ==========================
 router.get('/carousel', cacheV2, async (req, res) => {
   try {
     const Post = getPostModel();
-
-    // intenta traer elegidos manualmente
     let main = await Post.findOne({ carouselMain: true }).sort({ carouselMainAt: -1, updatedAt: -1 }).lean();
-    // si usás el viejo campo Entry_Is_Portada como portada grande, también lo acepta
     if (!main) main = await Post.findOne({ Entry_Is_Portada: true }).sort({ Entry_Portada_At: -1, updatedAt: -1 }).lean();
-
     let sides = await Post.find({ carouselSide: true }).sort({ carouselOrder: 1, carouselSideAt: -1, updatedAt: -1 }).limit(4).lean();
-
-    // FALLBACK: si no elegiste nada, por orden de publicación
     if (!main) {
       main = await Post.find({}).sort({ createdAt: -1 }).limit(1).lean().then(r=>r[0]);
     }
@@ -118,7 +109,6 @@ router.get('/carousel', cacheV2, async (req, res) => {
       const autoSides = await Post.find({ _id: { $nin: excludeIds } }).sort({ createdAt: -1 }).limit(faltan).lean();
       sides = [...sides,...autoSides];
     }
-
     const carousel = [main,...sides].filter(Boolean);
     res.json({ data: carousel, posts: carousel, main, sides, version: 'v2-carousel-opcional' });
   } catch (e) {
@@ -127,10 +117,6 @@ router.get('/carousel', cacheV2, async (req, res) => {
   }
 });
 
-// ==========================
-// 4. PORTADA SOLA - por si querés dejarla fija
-// GET /api/v2/posts/portada
-// ==========================
 router.get('/portada', cacheV2, async (req, res) => {
   try {
     const Post = getPostModel();
@@ -143,7 +129,6 @@ router.get('/portada', cacheV2, async (req, res) => {
   }
 });
 
-// Para compatibilidad con tu código viejo que usaba /destacada singular
 router.get('/destacada', cacheV2, async (req, res) => {
   try {
     const Post = getPostModel();
@@ -156,29 +141,20 @@ router.get('/destacada', cacheV2, async (req, res) => {
   }
 });
 
-// ==========================
-// 5. 5 DESTACADAS A ELECCIÓN - OPCIONAL
-// GET /api/v2/posts/destacadas
-// Si no elegís, trae mas-leidas o últimas
-// ==========================
 router.get('/destacadas', cacheV2, async (req, res) => {
   try {
     const Post = getPostModel();
     let posts = await Post.find({ destacada: true }).sort({ destacadaOrder: 1, destacadaAt: -1, updatedAt: -1 }).limit(5).lean();
-
-    // Fallback: si no elegiste ninguna, mas leidas o ultimas
     if (posts.length === 0) {
       const sort = Post.schema.path('views')? { views: -1, createdAt: -1 } : { createdAt: -1 };
       posts = await Post.find({}).sort(sort).limit(5).lean();
     }
-    // Si elegiste 2, completa hasta 5 con ultimas
     if (posts.length > 0 && posts.length < 5) {
       const exclude = posts.map(p=>p._id);
       const faltan = 5 - posts.length;
       const auto = await Post.find({ _id: { $nin: exclude } }).sort({ createdAt: -1 }).limit(faltan).lean();
       posts = [...posts,...auto];
     }
-
     res.json({ data: posts, posts, version: 'v2-destacadas-opcional', total: posts.length });
   } catch (e) {
     console.error('[destacadas]', e);
@@ -220,7 +196,7 @@ router.get('/slugs', cacheV2, async (req, res) => {
 });
 
 // ==========================
-// 6. ADMIN PATCH - NO SE PISAN ENTRE SÍ
+// 6. ADMIN PATCH
 // ==========================
 router.patch('/:id/portada', async (req, res) => {
   try {
@@ -275,11 +251,27 @@ router.patch('/:id/destacada', async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-// ESTE SIEMPRE ULTIMO
+// ==========================
+// 7. FIX COMPATIBILIDAD - VA ANTES DEL /:id
+// ==========================
+router.get('/slug/:slug', cacheV2, async (req, res) => {
+  try {
+    const Post = getPostModel();
+    const post = await Post.findOne({ Entry_Slug: req.params.slug }).lean();
+    if (!post) return res.status(404).json({ message: 'No encontrado' });
+    res.json({ data: post, post });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// ==========================
+// 8. ESTE SIEMPRE ULTIMO
+// ==========================
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    if (['search','last','destacada','destacadas','portada','carousel','ultimas','mas-leidas','slugs'].includes(id)) {
+    if (['search','last','destacada','destacadas','portada','carousel','ultimas','mas-leidas','slugs','slug'].includes(id)) {
       return res.status(404).json({ message: 'Ruta no encontrada' });
     }
     const Post = getPostModel();

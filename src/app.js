@@ -64,7 +64,7 @@ app.use(morgan('dev'));
 createRoles();
 startTrendingCron();
 
-// ========== FIX SEO BOTS PARA WHATSAPP / FB ==========
+// ========== FIX SEO BOTS PARA WHATSAPP / FB - CORREGIDO ==========
 const BOT_REGEX = /facebookexternalhit|Twitterbot|WhatsApp|LinkedInBot|Slackbot|TelegramBot|Googlebot|bingbot/i;
 const SITE_CANONICAL = 'https://voxdiario.com';
 
@@ -72,8 +72,6 @@ app.use(async (req, res, next) => {
   const ua = req.headers['user-agent'] || '';
   if (!BOT_REGEX.test(ua)) return next();
 
-  // Solo nos interesan rutas tipo /region/slug-de-nota o /politica/slug
-  // No interferir con /api/*
   if (req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/sitemap')) {
     return next();
   }
@@ -82,22 +80,33 @@ app.use(async (req, res, next) => {
   const slug = req.path.split('/').pop();
   if (!slug || slug.length < 5) return next();
 
-  try {
-    // intenta por slug directo (tu ruta buena de V2)
-    let post = null;
+  // shortId es lo de después del último guión: mtxqg1e5
+  const shortId = slug.split('-').pop();
+  const PORT = process.env.PORT || 8080;
+  const baseLocal = `http://localhost:${PORT}`;
+
+  const tryFetch = async (url) => {
     try {
-      const { data } = await axios.get(`http://localhost:${process.env.PORT || 8080}/api/v2/entradas/slug/${slug}`, { timeout: 3000 });
-      post = data?.data || data?.posts?.[0] || data;
-    } catch {
-      // fallback externo si falla interno
-      const { data } = await axios.get(`https://ultraserver.koyeb.app/api/v2/entradas/slug/${slug}`, { timeout: 4000 });
-      post = data?.data || data?.posts?.[0] || data;
-    }
+      const { data } = await axios.get(url, { timeout: 4000 });
+      return data?.data || data?.post || data?.posts?.[0] || data;
+    } catch { return null; }
+  };
+
+  try {
+    let post = null;
+
+    // 1. Intento directo por slug (tu ruta /:id)
+    post = await tryFetch(`${baseLocal}/api/v2/entradas/${slug}`);
+    // 2. Intento por /slug/:slug (compatibilidad nueva)
+    if (!post?.Entry_Title) post = await tryFetch(`${baseLocal}/api/v2/entradas/slug/${slug}`);
+    // 3. Intento por shortId con search (es lo que usa tu PostContainer)
+    if (!post?.Entry_Title && shortId) post = await tryFetch(`${baseLocal}/api/v2/entradas?search=${shortId}`);
+    if (!post?.Entry_Title && shortId) post = await tryFetch(`${baseLocal}/api/v2/posts?search=${shortId}`);
 
     if (!post?.Entry_Title) return next();
 
     const title = String(post.Entry_Title).replace(/"/g, '&quot;');
-    const desc = String(post.Entry_Resume || post.Entry_Body_Resume_Plain || '').slice(0, 160).replace(/"/g, '&quot;');
+    const desc = String(post.Entry_Resume || '').slice(0, 160).replace(/"/g, '&quot;');
     const image = post.Entry_Featured_Image || `${SITE_CANONICAL}/og-default.jpg`;
     const url = `${SITE_CANONICAL}${req.path}`;
 
@@ -126,7 +135,6 @@ app.use(async (req, res, next) => {
 <p>${desc}</p>
 <img src="${image}" alt="${title}" />
 <p><a href="${url}">Ver nota completa en Vox Diario</a></p>
-<script>window.location.href="${url}"</script>
 </body>
 </html>`);
   } catch (e) {
@@ -136,10 +144,8 @@ app.use(async (req, res, next) => {
 });
 // ========== FIN FIX SEO ==========
 
-// PUBLIC ESTATICO
 app.use('/public', express.static('public'));
 
-// HEALTH
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', service: 'ultraserver', uptime: process.uptime(), timestamp: Date.now() });
 });
@@ -158,7 +164,6 @@ app.get('/', (req, res) => {
 
 app.use('/', sitemapRoutes);
 
-// --- RUTAS V1 ---
 app.use('/api/posts', postRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/auth', authRoutes);
@@ -166,7 +171,6 @@ app.use('/api/users', userRoutes);
 app.use('/api/cortes', corteRoutes);
 app.use('/api/boletin', boletinRoutes);
 
-// --- RUTAS V2 ---
 app.use('/api/v2/servicios/rutas', rutasRouter);
 app.use('/api/v2/posts', postsV2Router);
 app.use('/api/v2/entradas', postsV2Router);
@@ -175,7 +179,6 @@ app.use('/api/v2/tags', tagsV2Router);
 app.use('/api/v2/tts', ttsRouter);
 app.use('/api/v2/categorias', categoriasRouter);
 
-// FIX: boletin soporta /actual y / - tu Dashboard usa ambos
 app.use('/api/v2/boletin', boletinRoutes);
 app.use('/api/boletin', boletinRoutes);
 
