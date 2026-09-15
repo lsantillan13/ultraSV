@@ -14,6 +14,7 @@ import tagsV2Router from './routes/v2/tags.routes.js';
 import ttsRouter from './routes/v2/tts.routes.js';
 import viewsV2Router from './routes/v2/views.routes.js';
 import categoriasRouter from './routes/v2/categorias.routes.js';
+import voxRouter from './routes/v2/vox.routes.js';
 import { startTrendingCron } from './crons/trending.cron.js';
 import axios from 'axios';
 import 'dotenv/config'
@@ -78,6 +79,7 @@ app.use('/api/cortes', corteRoutes);
 app.use('/api/boletin', boletinRoutes);
 app.use('/api/v2/servicios/rutas', rutasRouter);
 app.use('/api/v2/posts', postsV2Router);
+app.use('/api/v2/vox', voxRouter);
 app.use('/api/v2/entradas', postsV2Router);
 app.use('/api/v2/views', viewsV2Router);
 app.use('/api/v2/tags', tagsV2Router);
