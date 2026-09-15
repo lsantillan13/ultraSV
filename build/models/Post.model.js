@@ -110,11 +110,9 @@ var CATEGORY_GRUPO = {
   "lifestyle": "ESTILO DE VIDA",
   "institucional": "INSTITUCIONAL"
 };
-
-// helper para generar texto limpio para TTS
 var stripHtml = function stripHtml() {
   var html = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
-  return html.replace(/<style[^>]*>[^]*?<\/style>/gi, '').replace(/<script[^>]*>[^]*?<\/script>/gi, '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim();
+  return html.replace(/<style[^>]*>[^]*?<\/style>/gi, '').replace(/<script[^>]*>[^]*?<\/script>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 };
 var slugify = function slugify() {
   var text = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
@@ -137,7 +135,6 @@ var postSchema = new _mongoose.Schema({
     type: String,
     trim: true
   },
-  // --- CATEGORÍA NORMALIZADA ---
   Entry_Category: {
     type: String,
     trim: true,
@@ -151,7 +148,7 @@ var postSchema = new _mongoose.Schema({
     type: String,
     trim: true
   },
-  // --- PORTADA ---
+  // --- PORTADA (legacy) ---
   Entry_Is_Portada: {
     type: Boolean,
     "default": false
@@ -160,7 +157,50 @@ var postSchema = new _mongoose.Schema({
     type: Date,
     "default": null
   },
-  // --- SLUG / SEO ---
+  // --- CAROUSEL OPCIONAL ---
+  // Si no marcás ninguno, HomeTest usa createdAt:-1
+  carouselMain: {
+    type: Boolean,
+    "default": false,
+    index: true
+  },
+  // 1 grande
+  carouselMainAt: {
+    type: Date,
+    "default": null
+  },
+  carouselSide: {
+    type: Boolean,
+    "default": false,
+    index: true
+  },
+  // 4 chicas
+  carouselOrder: {
+    type: Number,
+    "default": 0,
+    min: 0,
+    max: 3
+  },
+  carouselSideAt: {
+    type: Date,
+    "default": null
+  },
+  // --- 5 DESTACADAS OPCIONAL ---
+  destacada: {
+    type: Boolean,
+    "default": false,
+    index: true
+  },
+  destacadaOrder: {
+    type: Number,
+    "default": 0,
+    min: 0,
+    max: 4
+  },
+  destacadaAt: {
+    type: Date,
+    "default": null
+  },
   Entry_Slug: {
     type: String,
     trim: true,
@@ -168,7 +208,6 @@ var postSchema = new _mongoose.Schema({
     unique: true,
     sparse: true
   },
-  // --- BODY LIMPIO PARA TTS / LECTOR ---
   Entry_Body_Plain: {
     type: String,
     "default": ''
@@ -177,7 +216,6 @@ var postSchema = new _mongoose.Schema({
     type: String,
     "default": ''
   },
-  // --- TAGS ---
   Entry_Tags: {
     type: [String],
     "default": [],
@@ -192,7 +230,6 @@ var postSchema = new _mongoose.Schema({
     type: Boolean,
     "default": false
   },
-  // --- VIEWS REALES ---
   views: {
     type: Number,
     "default": 0
@@ -217,7 +254,6 @@ var postSchema = new _mongoose.Schema({
     type: Number,
     "default": 0
   },
-  // --- TTS y Audio ---
   ttsEnabled: {
     type: Boolean,
     "default": true
@@ -230,7 +266,6 @@ var postSchema = new _mongoose.Schema({
     type: Date,
     "default": null
   },
-  // --- Métricas ---
   readingTime: {
     type: Number,
     "default": 0
@@ -243,31 +278,23 @@ var postSchema = new _mongoose.Schema({
   timestamps: true,
   versionKey: false
 });
-
-// --- MIDDLEWARE ---
 postSchema.pre('save', function (next) {
-  // 1. NORMALIZACIÓN DE CATEGORÍA - EL PARCHE CLAVE
   if (this.isModified('Entry_Category') && this.Entry_Category) {
     var slug = slugify(this.Entry_Category);
     this.Entry_Category = slug;
-    // Label bonito automático
     this.Entry_Category_Label = CATEGORY_MAP[slug] || this.Entry_Category;
-    // Grupo para el select del admin
     this.Entry_Grupo = CATEGORY_GRUPO[slug] || 'OTROS';
   }
-  if (!this.Entry_Slug && this.Entry_Title) {
-    this.Entry_Slug = slugify(this.Entry_Title) + '-' + Date.now().toString(36);
-  }
+  if (!this.Entry_Slug && this.Entry_Title) this.Entry_Slug = slugify(this.Entry_Title) + '-' + Date.now().toString(36);
   if (this.isModified('Entry_Body') && this.Entry_Body) {
     this.Entry_Body_Plain = stripHtml(this.Entry_Body).substring(0, 20000);
     this.readingTime = Math.ceil(this.Entry_Body_Plain.split(' ').length / 200);
   }
-  if (this.isModified('Entry_Resume') && this.Entry_Resume) {
-    this.Entry_Body_Resume_Plain = stripHtml(this.Entry_Resume);
-  }
-  if (this.isModified('Entry_Is_Portada') && this.Entry_Is_Portada && !this.Entry_Portada_At) {
-    this.Entry_Portada_At = new Date();
-  }
+  if (this.isModified('Entry_Resume') && this.Entry_Resume) this.Entry_Body_Resume_Plain = stripHtml(this.Entry_Resume);
+  if (this.isModified('Entry_Is_Portada') && this.Entry_Is_Portada && !this.Entry_Portada_At) this.Entry_Portada_At = new Date();
+  if (this.isModified('carouselMain') && this.carouselMain && !this.carouselMainAt) this.carouselMainAt = new Date();
+  if (this.isModified('carouselSide') && this.carouselSide && !this.carouselSideAt) this.carouselSideAt = new Date();
+  if (this.isModified('destacada') && this.destacada && !this.destacadaAt) this.destacadaAt = new Date();
   if (this.Entry_Tags.length === 0 && this.Entry_Title) {
     var base = "".concat(this.Entry_Title, " ").concat(this.Entry_Category).toLowerCase();
     var words = base.split(/[\s,.-]+/).filter(function (w) {
@@ -280,8 +307,6 @@ postSchema.pre('save', function (next) {
   }
   next();
 });
-
-// --- INDICES - TODO ACA, UNA SOLA VEZ ---
 postSchema.index({
   createdAt: -1
 });
@@ -299,33 +324,19 @@ postSchema.index({
   Entry_Portada_At: -1
 });
 postSchema.index({
-  Entry_Is_Portada: 1,
-  createdAt: -1
+  carouselMain: 1,
+  carouselMainAt: -1
+});
+postSchema.index({
+  carouselSide: 1,
+  carouselOrder: 1
+});
+postSchema.index({
+  destacada: 1,
+  destacadaOrder: 1
 });
 postSchema.index({
   views: -1
-});
-postSchema.index({
-  views24h: -1,
-  createdAt: -1
-});
-postSchema.index({
-  trendingScore: -1,
-  createdAt: -1
-});
-postSchema.index({
-  lastViewedAt: -1
-});
-postSchema.index({
-  Entry_Tags: 1
-});
-postSchema.index({
-  Entry_Tags: 1,
-  createdAt: -1
-});
-postSchema.index({
-  Entry_Category: 1,
-  Entry_Tags: 1
 });
 postSchema.index({
   Entry_Grupo: 1
