@@ -32,22 +32,15 @@ function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { 
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
 var app = (0, _express["default"])();
-var whitelist = ['https://voxdiario.com', 'https://www.voxdiario.com', 'https://voxdiario.com.ar', 'https://www.voxdiario.com.ar', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:8080', 'http://192.168.100.11:3000', 'http://192.168.100.11:8080'];
+var whitelist = ['https://voxdiario.com', 'https://www.voxdiario.com', 'https://voxdiario.com.ar', 'https://www.voxdiario.com.ar', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:8080', 'http://192.168.100.11:3000'];
 var corsOptions = {
-  origin: function origin(_origin, callback) {
-    if (!_origin) return callback(null, true);
-    if (whitelist.includes(_origin)) return callback(null, true);
-    if (_origin.includes('google') || _origin.includes('bing') || _origin.includes('facebook')) {
-      return callback(null, true);
-    }
-    console.warn("CORS: Origin no listado pero permitido: ".concat(_origin));
-    return callback(null, true);
+  origin: function origin(_origin, cb) {
+    cb(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'x-access-token', 'x-auth-token'],
-  exposedHeaders: ['x-access-token', 'Authorization'],
-  optionsSuccessStatus: 204
+  exposedHeaders: ['x-access-token', 'Authorization']
 };
 app.use((0, _cors["default"])(corsOptions));
 app.options('*', (0, _cors["default"])(corsOptions));
@@ -66,13 +59,11 @@ app.use(_express["default"].urlencoded({
 app.use((0, _morgan["default"])('dev'));
 (0, _initialSetup.createRoles)();
 (0, _trendingCron.startTrendingCron)();
-
-// ========== FIX SEO BOTS PARA WHATSAPP / FB - CORREGIDO ==========
 var BOT_REGEX = /facebookexternalhit|Twitterbot|WhatsApp|LinkedInBot|Slackbot|TelegramBot|Googlebot|bingbot/i;
 var SITE_CANONICAL = 'https://voxdiario.com';
 app.use(/*#__PURE__*/function () {
   var _ref = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(req, res, next) {
-    var ua, slug, shortId, PORT, baseLocal, tryFetch, _post, _post2, _post3, _post4, post, title, desc, image, url, _t2;
+    var ua, slug, shortId, baseLocal, tryFetch, _post, _post2, _post3, post, title, desc, image, url, _t2;
     return _regenerator().w(function (_context2) {
       while (1) switch (_context2.p = _context2.n) {
         case 0:
@@ -96,16 +87,14 @@ app.use(/*#__PURE__*/function () {
           return _context2.a(2, next());
         case 3:
           slug = req.path.split('/').pop();
-          if (!(!slug || slug.length < 5)) {
+          if (!(!slug || slug.length < 3)) {
             _context2.n = 4;
             break;
           }
           return _context2.a(2, next());
         case 4:
-          // shortId es lo de después del último guión: mtxqg1e5
           shortId = slug.split('-').pop();
-          PORT = process.env.PORT || 8080;
-          baseLocal = "http://localhost:".concat(PORT);
+          baseLocal = "http://localhost:".concat(process.env.PORT || 8080);
           tryFetch = /*#__PURE__*/function () {
             var _ref2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(url) {
               var _data$posts, _yield$axios$get, data, _t;
@@ -133,7 +122,6 @@ app.use(/*#__PURE__*/function () {
             };
           }();
           _context2.p = 5;
-          post = null; // 1. Intento directo por slug (tu ruta /:id)
           _context2.n = 6;
           return tryFetch("".concat(baseLocal, "/api/v2/entradas/").concat(slug));
         case 6:
@@ -156,43 +144,31 @@ app.use(/*#__PURE__*/function () {
         case 9:
           post = _context2.v;
         case 10:
-          if (!(!((_post3 = post) !== null && _post3 !== void 0 && _post3.Entry_Title) && shortId)) {
-            _context2.n = 12;
-            break;
-          }
-          _context2.n = 11;
-          return tryFetch("".concat(baseLocal, "/api/v2/posts?search=").concat(shortId));
-        case 11:
-          post = _context2.v;
-        case 12:
-          if ((_post4 = post) !== null && _post4 !== void 0 && _post4.Entry_Title) {
-            _context2.n = 13;
+          if ((_post3 = post) !== null && _post3 !== void 0 && _post3.Entry_Title) {
+            _context2.n = 11;
             break;
           }
           return _context2.a(2, next());
-        case 13:
+        case 11:
           title = String(post.Entry_Title).replace(/"/g, '&quot;');
           desc = String(post.Entry_Resume || '').slice(0, 160).replace(/"/g, '&quot;');
           image = post.Entry_Featured_Image || "".concat(SITE_CANONICAL, "/og-default.jpg");
           url = "".concat(SITE_CANONICAL).concat(req.path);
-          return _context2.a(2, res.status(200).send("<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n<meta charset=\"utf-8\" />\n<title>".concat(title, " | Vox Diario</title>\n<meta name=\"description\" content=\"").concat(desc, "\" />\n<link rel=\"canonical\" href=\"").concat(url, "\" />\n<meta property=\"og:title\" content=\"").concat(title, "\" />\n<meta property=\"og:description\" content=\"").concat(desc, "\" />\n<meta property=\"og:image\" content=\"").concat(image, "\" />\n<meta property=\"og:image:width\" content=\"1200\" />\n<meta property=\"og:image:height\" content=\"630\" />\n<meta property=\"og:url\" content=\"").concat(url, "\" />\n<meta property=\"og:type\" content=\"article\" />\n<meta property=\"og:site_name\" content=\"Vox Diario\" />\n<meta name=\"twitter:card\" content=\"summary_large_image\" />\n<meta name=\"twitter:title\" content=\"").concat(title, "\" />\n<meta name=\"twitter:description\" content=\"").concat(desc, "\" />\n<meta name=\"twitter:image\" content=\"").concat(image, "\" />\n</head>\n<body>\n<h1>").concat(title, "</h1>\n<p>").concat(desc, "</p>\n<img src=\"").concat(image, "\" alt=\"").concat(title, "\" />\n<p><a href=\"").concat(url, "\">Ver nota completa en Vox Diario</a></p>\n</body>\n</html>")));
-        case 14:
-          _context2.p = 14;
+          return _context2.a(2, res.status(200).send("<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"utf-8\"/><title>".concat(title, " | Vox Diario</title><meta name=\"description\" content=\"").concat(desc, "\"/><link rel=\"canonical\" href=\"").concat(url, "\"/><meta property=\"og:title\" content=\"").concat(title, "\"/><meta property=\"og:description\" content=\"").concat(desc, "\"/><meta property=\"og:image\" content=\"").concat(image, "\"/><meta property=\"og:url\" content=\"").concat(url, "\"/><meta property=\"og:type\" content=\"article\"/><meta property=\"og:site_name\" content=\"Vox Diario\"/><meta name=\"twitter:card\" content=\"summary_large_image\"/></head><body><h1>").concat(title, "</h1></body></html>")));
+        case 12:
+          _context2.p = 12;
           _t2 = _context2.v;
-          console.warn('[SEO BOT] fail', _t2.message);
           return _context2.a(2, next());
       }
-    }, _callee2, null, [[5, 14]]);
+    }, _callee2, null, [[5, 12]]);
   }));
   return function (_x, _x2, _x3) {
     return _ref.apply(this, arguments);
   };
 }());
-// ========== FIN FIX SEO ==========
-
 app.use('/public', _express["default"]["static"]('public'));
 app.get('/health', function (req, res) {
-  res.status(200).json({
+  return res.json({
     status: 'ok',
     service: 'ultraserver',
     uptime: process.uptime(),
@@ -200,7 +176,7 @@ app.get('/health', function (req, res) {
   });
 });
 app.get('/', function (req, res) {
-  res.send("<h1>VoxDiario API v2 Running</h1>\n  <ul>\n    <li><a href=\"/health\">Health</a></li>\n    <li><a href=\"/sitemap.xml\">sitemap.xml</a></li>\n    <li><a href=\"/api/content/carousel\">/api/content/carousel</a></li>\n    <li><a href=\"/api/v2/servicios/rutas\">/api/v2/servicios/rutas</a></li>\n    <li><a href=\"/api/v2/posts/destacada\">/api/v2/posts/destacada</a></li>\n    <li><a href=\"/api/v2/entradas\">/api/v2/entradas</a></li>\n  </ul>");
+  return res.send("<h1>VoxDiario API v2 Running</h1><ul><li><a href=\"/health\">Health</a></li><li><a href=\"/api/v2/entradas\">/api/v2/entradas</a></li></ul>");
 });
 app.use('/', _sitemapRoutes["default"]);
 app.use('/api/posts', _postRoutes["default"]);
@@ -219,15 +195,14 @@ app.use('/api/v2/categorias', _categoriasRoutes["default"]);
 app.use('/api/v2/boletin', _boletinRoutes["default"]);
 app.use('/api/boletin', _boletinRoutes["default"]);
 app.use(function (req, res) {
-  res.status(404).json({
+  return res.status(404).json({
     status: 404,
     message: 'Ruta no encontrada',
     path: req.originalUrl
   });
 });
 app.use(function (err, req, res, next) {
-  console.error('[VoxDiario API ERROR]', err);
-  res.status(err.status || 500).json({
+  return res.status(err.status || 500).json({
     status: err.status || 500,
     message: err.message || 'Error interno'
   });

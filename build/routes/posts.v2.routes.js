@@ -1,5 +1,6 @@
 "use strict";
 
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
@@ -7,6 +8,11 @@ exports["default"] = void 0;
 var _express = require("express");
 var _mongoose = _interopRequireDefault(require("mongoose"));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default": e }; }
+function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
+function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
+function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
+function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
+function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
 function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
@@ -29,9 +35,13 @@ var cacheV2 = function cacheV2(req, res, next) {
 var getPostModel = function getPostModel() {
   return _mongoose["default"].models.Post || _mongoose["default"].models.post || _mongoose["default"].model('Post');
 };
+var slugify = function slugify() {
+  var text = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+  return text.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 120);
+};
 
 // ==========================
-// 1. LISTADO - /admin
+// 1. LISTADO
 // ==========================
 router.get('/', cacheV2, /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(req, res) {
@@ -92,9 +102,6 @@ router.get('/', cacheV2, /*#__PURE__*/function () {
     return _ref.apply(this, arguments);
   };
 }());
-
-//... (todos tus /search, /last, /carousel, /portada, /destacada, /destacadas, /ultimas, /mas-leidas, /slugs IGUALES)
-
 router.get('/search', cacheV2, /*#__PURE__*/function () {
   var _ref2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(req, res) {
     var Post, _req$query, q, search, _req$query$limit, limit, query, l, regex, posts, _t2;
@@ -195,7 +202,7 @@ router.get('/last', cacheV2, /*#__PURE__*/function () {
 }());
 router.get('/carousel', cacheV2, /*#__PURE__*/function () {
   var _ref4 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(req, res) {
-    var Post, main, sides, _main, excludeIds, faltan, autoSides, carousel, _t4;
+    var Post, main, sides, _main, excludeIds, faltan, autoSides, _t4;
     return _regenerator().w(function (_context4) {
       while (1) switch (_context4.p = _context4.n) {
         case 0:
@@ -267,13 +274,12 @@ router.get('/carousel', cacheV2, /*#__PURE__*/function () {
           autoSides = _context4.v;
           sides = [].concat(_toConsumableArray(sides), _toConsumableArray(autoSides));
         case 8:
-          carousel = [main].concat(_toConsumableArray(sides)).filter(Boolean);
           res.json({
-            data: carousel,
-            posts: carousel,
+            data: [main].concat(_toConsumableArray(sides)).filter(Boolean),
+            posts: [main].concat(_toConsumableArray(sides)).filter(Boolean),
             main: main,
             sides: sides,
-            version: 'v2-carousel-opcional'
+            version: 'v2'
           });
           _context4.n = 10;
           break;
@@ -417,7 +423,7 @@ router.get('/destacada', cacheV2, /*#__PURE__*/function () {
 }());
 router.get('/destacadas', cacheV2, /*#__PURE__*/function () {
   var _ref7 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7(req, res) {
-    var Post, posts, sort, exclude, faltan, auto, _t7;
+    var Post, posts, exclude, auto, _t7;
     return _regenerator().w(function (_context7) {
       while (1) switch (_context7.p = _context7.n) {
         case 0:
@@ -428,34 +434,28 @@ router.get('/destacadas', cacheV2, /*#__PURE__*/function () {
             destacada: true
           }).sort({
             destacadaOrder: 1,
-            destacadaAt: -1,
-            updatedAt: -1
+            destacadaAt: -1
           }).limit(5).lean();
         case 1:
           posts = _context7.v;
-          if (!(posts.length === 0)) {
+          if (posts.length) {
             _context7.n = 3;
             break;
           }
-          sort = Post.schema.path('views') ? {
-            views: -1,
-            createdAt: -1
-          } : {
-            createdAt: -1
-          };
           _context7.n = 2;
-          return Post.find({}).sort(sort).limit(5).lean();
+          return Post.find({}).sort({
+            createdAt: -1
+          }).limit(5).lean();
         case 2:
           posts = _context7.v;
         case 3:
-          if (!(posts.length > 0 && posts.length < 5)) {
+          if (!(posts.length < 5)) {
             _context7.n = 5;
             break;
           }
           exclude = posts.map(function (p) {
             return p._id;
           });
-          faltan = 5 - posts.length;
           _context7.n = 4;
           return Post.find({
             _id: {
@@ -463,7 +463,7 @@ router.get('/destacadas', cacheV2, /*#__PURE__*/function () {
             }
           }).sort({
             createdAt: -1
-          }).limit(faltan).lean();
+          }).limit(5 - posts.length).lean();
         case 4:
           auto = _context7.v;
           posts = [].concat(_toConsumableArray(posts), _toConsumableArray(auto));
@@ -471,7 +471,6 @@ router.get('/destacadas', cacheV2, /*#__PURE__*/function () {
           res.json({
             data: posts,
             posts: posts,
-            version: 'v2-destacadas-opcional',
             total: posts.length
           });
           _context7.n = 7;
@@ -493,23 +492,21 @@ router.get('/destacadas', cacheV2, /*#__PURE__*/function () {
 }());
 router.get('/ultimas', cacheV2, /*#__PURE__*/function () {
   var _ref8 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8(req, res) {
-    var limit, Post, posts, _t8;
+    var Post, posts, _t8;
     return _regenerator().w(function (_context8) {
       while (1) switch (_context8.p = _context8.n) {
         case 0:
           _context8.p = 0;
-          limit = Math.min(parseInt(req.query.limit) || 12, 30);
           Post = getPostModel();
           _context8.n = 1;
           return Post.find({}).sort({
             createdAt: -1
-          }).limit(limit).lean();
+          }).limit(Math.min(parseInt(req.query.limit) || 12, 30)).lean();
         case 1:
           posts = _context8.v;
           res.json({
             data: posts,
-            posts: posts,
-            version: 'v2'
+            posts: posts
           });
           _context8.n = 3;
           break;
@@ -530,12 +527,11 @@ router.get('/ultimas', cacheV2, /*#__PURE__*/function () {
 }());
 router.get('/mas-leidas', cacheV2, /*#__PURE__*/function () {
   var _ref9 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9(req, res) {
-    var limit, Post, sort, posts, _t9;
+    var Post, sort, posts, _t9;
     return _regenerator().w(function (_context9) {
       while (1) switch (_context9.p = _context9.n) {
         case 0:
           _context9.p = 0;
-          limit = Math.min(parseInt(req.query.limit) || 5, 10);
           Post = getPostModel();
           sort = Post.schema.path('views') ? {
             views: -1,
@@ -544,14 +540,12 @@ router.get('/mas-leidas', cacheV2, /*#__PURE__*/function () {
             createdAt: -1
           };
           _context9.n = 1;
-          return Post.find({}).sort(sort).limit(limit).lean();
+          return Post.find({}).sort(sort).limit(Math.min(parseInt(req.query.limit) || 5, 10)).lean();
         case 1:
           posts = _context9.v;
           res.json({
             data: posts,
-            posts: posts,
-            version: 'v2',
-            total: posts.length
+            posts: posts
           });
           _context9.n = 3;
           break;
@@ -604,63 +598,56 @@ router.get('/slugs', cacheV2, /*#__PURE__*/function () {
 }());
 router.patch('/:id/portada', /*#__PURE__*/function () {
   var _ref1 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(req, res) {
-    var Post, active, _t1;
+    var Post, _t1;
     return _regenerator().w(function (_context1) {
       while (1) switch (_context1.p = _context1.n) {
         case 0:
           _context1.p = 0;
           Post = getPostModel();
-          active = req.body.active;
-          if (!active) {
-            _context1.n = 4;
+          if (!req.body.active) {
+            _context1.n = 3;
             break;
           }
           _context1.n = 1;
           return Post.updateMany({}, {
             $set: {
-              Entry_Is_Portada: false
+              Entry_Is_Portada: false,
+              carouselMain: false
             }
           });
         case 1:
           _context1.n = 2;
-          return Post.updateMany({}, {
-            $set: {
-              carouselMain: false
-            }
-          });
-        case 2:
-          _context1.n = 3;
           return Post.findByIdAndUpdate(req.params.id, {
             Entry_Is_Portada: true,
             Entry_Portada_At: new Date(),
             carouselMain: true,
             carouselMainAt: new Date()
           });
-        case 3:
-          _context1.n = 5;
+        case 2:
+          _context1.n = 4;
           break;
-        case 4:
-          _context1.n = 5;
+        case 3:
+          _context1.n = 4;
           return Post.findByIdAndUpdate(req.params.id, {
             Entry_Is_Portada: false,
             carouselMain: false
           });
-        case 5:
+        case 4:
           res.json({
             ok: true
           });
-          _context1.n = 7;
+          _context1.n = 6;
           break;
-        case 6:
-          _context1.p = 6;
+        case 5:
+          _context1.p = 5;
           _t1 = _context1.v;
           res.status(500).json({
             message: _t1.message
           });
-        case 7:
+        case 6:
           return _context1.a(2);
       }
-    }, _callee1, null, [[0, 6]]);
+    }, _callee1, null, [[0, 5]]);
   }));
   return function (_x19, _x20) {
     return _ref1.apply(this, arguments);
@@ -668,14 +655,13 @@ router.patch('/:id/portada', /*#__PURE__*/function () {
 }());
 router.patch('/:id/carousel-main', /*#__PURE__*/function () {
   var _ref10 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(req, res) {
-    var Post, active, _t10;
+    var Post, _t10;
     return _regenerator().w(function (_context10) {
       while (1) switch (_context10.p = _context10.n) {
         case 0:
           _context10.p = 0;
           Post = getPostModel();
-          active = req.body.active;
-          if (!active) {
+          if (!req.body.active) {
             _context10.n = 3;
             break;
           }
@@ -722,18 +708,17 @@ router.patch('/:id/carousel-main', /*#__PURE__*/function () {
 }());
 router.patch('/:id/carousel-side', /*#__PURE__*/function () {
   var _ref11 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11(req, res) {
-    var Post, _req$body, active, order, update, _t11;
+    var Post, update, _t11;
     return _regenerator().w(function (_context11) {
       while (1) switch (_context11.p = _context11.n) {
         case 0:
           _context11.p = 0;
           Post = getPostModel();
-          _req$body = req.body, active = _req$body.active, order = _req$body.order;
           update = {
-            carouselSide: !!active
+            carouselSide: !!req.body.active
           };
-          if (typeof order === 'number') update.carouselOrder = order;
-          if (active) update.carouselSideAt = new Date();
+          if (typeof req.body.order === 'number') update.carouselOrder = req.body.order;
+          if (req.body.active) update.carouselSideAt = new Date();
           _context11.n = 1;
           return Post.findByIdAndUpdate(req.params.id, update);
         case 1:
@@ -759,18 +744,17 @@ router.patch('/:id/carousel-side', /*#__PURE__*/function () {
 }());
 router.patch('/:id/destacada', /*#__PURE__*/function () {
   var _ref12 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee12(req, res) {
-    var Post, _req$body2, active, order, update, _t12;
+    var Post, update, _t12;
     return _regenerator().w(function (_context12) {
       while (1) switch (_context12.p = _context12.n) {
         case 0:
           _context12.p = 0;
           Post = getPostModel();
-          _req$body2 = req.body, active = _req$body2.active, order = _req$body2.order;
           update = {
-            destacada: !!active
+            destacada: !!req.body.active
           };
-          if (typeof order === 'number') update.destacadaOrder = order;
-          if (active) update.destacadaAt = new Date();
+          if (typeof req.body.order === 'number') update.destacadaOrder = req.body.order;
+          if (req.body.active) update.destacadaAt = new Date();
           _context12.n = 1;
           return Post.findByIdAndUpdate(req.params.id, update);
         case 1:
@@ -838,20 +822,27 @@ router.get('/slug/:slug', cacheV2, /*#__PURE__*/function () {
   };
 }());
 
-// ==========================
-// ESTO ES LO QUE TE FALTABA REY - PUT Y DELETE
-// TIENE QUE IR ANTES DEL GET /:id
-// ==========================
+// ===== FIX SLUG + PUT + DELETE =====
 router.put('/:id', /*#__PURE__*/function () {
   var _ref14 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14(req, res) {
-    var Post, updated, _t14;
+    var Post, body, updated, _t14;
     return _regenerator().w(function (_context14) {
       while (1) switch (_context14.p = _context14.n) {
         case 0:
           _context14.p = 0;
           Post = getPostModel();
+          body = _objectSpread({}, req.body); // Si mandan titulo y no slug, o mandan slug vacío, no lo pises
+          if (!body.Entry_Slug || String(body.Entry_Slug).trim() === '' || body.Entry_Slug === 'undefined') {
+            if (body.Entry_Title) {
+              body.Entry_Slug = slugify(body.Entry_Title);
+            } else {
+              delete body.Entry_Slug; // mantiene el que ya tenía
+            }
+          } else {
+            body.Entry_Slug = slugify(body.Entry_Slug);
+          }
           _context14.n = 1;
-          return Post.findByIdAndUpdate(req.params.id, req.body, {
+          return Post.findByIdAndUpdate(req.params.id, body, {
             "new": true
           });
         case 1:
@@ -888,14 +879,13 @@ router.put('/:id', /*#__PURE__*/function () {
 }());
 router["delete"]('/:id', /*#__PURE__*/function () {
   var _ref15 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee15(req, res) {
-    var Post, id, deleted, _t15;
+    var Post, id, deleted, _t15, _t16;
     return _regenerator().w(function (_context15) {
       while (1) switch (_context15.p = _context15.n) {
         case 0:
           _context15.p = 0;
           Post = getPostModel();
           id = req.params.id;
-          console.log("[DELETE V2] Intentando borrar ".concat(id));
           deleted = null;
           if (!_mongoose["default"].Types.ObjectId.isValid(id)) {
             _context15.n = 2;
@@ -905,67 +895,63 @@ router["delete"]('/:id', /*#__PURE__*/function () {
           return Post.findByIdAndDelete(id);
         case 1:
           deleted = _context15.v;
-          _context15.n = 5;
+          _context15.n = 6;
           break;
         case 2:
           _context15.n = 3;
           return Post.findOneAndDelete({
-            _id: id
+            Entry_Slug: id
           });
         case 3:
-          deleted = _context15.v;
-          if (deleted) {
+          _t15 = _context15.v;
+          if (_t15) {
             _context15.n = 5;
             break;
           }
           _context15.n = 4;
           return Post.findOneAndDelete({
-            Entry_Slug: id
+            _id: id
           });
         case 4:
-          deleted = _context15.v;
+          _t15 = _context15.v;
         case 5:
+          deleted = _t15;
+        case 6:
           if (deleted) {
-            _context15.n = 6;
+            _context15.n = 7;
             break;
           }
           return _context15.a(2, res.status(404).json({
             status: 404,
-            message: 'Ruta no encontrada o ID no existe',
-            path: req.originalUrl,
-            id: id
+            message: 'ID no existe',
+            path: req.originalUrl
           }));
-        case 6:
+        case 7:
           res.json({
             ok: true,
             message: 'Borrado V2',
             id: id
           });
-          _context15.n = 8;
+          _context15.n = 9;
           break;
-        case 7:
-          _context15.p = 7;
-          _t15 = _context15.v;
-          console.error('[DELETE V2]', _t15);
-          res.status(500).json({
-            message: _t15.message
-          });
         case 8:
+          _context15.p = 8;
+          _t16 = _context15.v;
+          res.status(500).json({
+            message: _t16.message
+          });
+        case 9:
           return _context15.a(2);
       }
-    }, _callee15, null, [[0, 7]]);
+    }, _callee15, null, [[0, 8]]);
   }));
   return function (_x31, _x32) {
     return _ref15.apply(this, arguments);
   };
 }());
-
-// ==========================
-// 8. ESTE SIEMPRE ULTIMO
-// ==========================
 router.get('/:id', /*#__PURE__*/function () {
   var _ref16 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee16(req, res) {
-    var id, Post, post, _t16;
+    var id, Post, post, _t17, _t18;
     return _regenerator().w(function (_context16) {
       while (1) switch (_context16.p = _context16.n) {
         case 0:
@@ -980,7 +966,6 @@ router.get('/:id', /*#__PURE__*/function () {
           }));
         case 1:
           Post = getPostModel();
-          post = null;
           if (!_mongoose["default"].Types.ObjectId.isValid(id)) {
             _context16.n = 3;
             break;
@@ -988,43 +973,48 @@ router.get('/:id', /*#__PURE__*/function () {
           _context16.n = 2;
           return Post.findById(id).lean();
         case 2:
-          post = _context16.v;
+          _t17 = _context16.v;
+          _context16.n = 4;
+          break;
         case 3:
+          _t17 = null;
+        case 4:
+          post = _t17;
           if (post) {
-            _context16.n = 5;
+            _context16.n = 6;
             break;
           }
-          _context16.n = 4;
+          _context16.n = 5;
           return Post.findOne({
             Entry_Slug: id
           }).lean();
-        case 4:
-          post = _context16.v;
         case 5:
+          post = _context16.v;
+        case 6:
           if (post) {
-            _context16.n = 6;
+            _context16.n = 7;
             break;
           }
           return _context16.a(2, res.status(404).json({
             message: 'No encontrado'
           }));
-        case 6:
+        case 7:
           res.json({
             data: post,
             post: post
           });
-          _context16.n = 8;
+          _context16.n = 9;
           break;
-        case 7:
-          _context16.p = 7;
-          _t16 = _context16.v;
-          res.status(500).json({
-            message: _t16.message
-          });
         case 8:
+          _context16.p = 8;
+          _t18 = _context16.v;
+          res.status(500).json({
+            message: _t18.message
+          });
+        case 9:
           return _context16.a(2);
       }
-    }, _callee16, null, [[0, 7]]);
+    }, _callee16, null, [[0, 8]]);
   }));
   return function (_x33, _x34) {
     return _ref16.apply(this, arguments);
