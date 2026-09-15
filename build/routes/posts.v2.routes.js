@@ -80,7 +80,6 @@ router.get('/', cacheV2, /*#__PURE__*/function () {
         case 2:
           _context.p = 2;
           _t = _context.v;
-          console.error('[v2 posts /]', _t);
           res.status(500).json({
             message: _t.message
           });
@@ -94,9 +93,8 @@ router.get('/', cacheV2, /*#__PURE__*/function () {
   };
 }());
 
-// ==========================
-// 2. SEARCH
-// ==========================
+//... (todos tus /search, /last, /carousel, /portada, /destacada, /destacadas, /ultimas, /mas-leidas, /slugs IGUALES)
+
 router.get('/search', cacheV2, /*#__PURE__*/function () {
   var _ref2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(req, res) {
     var Post, _req$query, q, search, _req$query$limit, limit, query, l, regex, posts, _t2;
@@ -195,10 +193,6 @@ router.get('/last', cacheV2, /*#__PURE__*/function () {
     return _ref3.apply(this, arguments);
   };
 }());
-
-// ==========================
-// 3. CAROUSEL / PORTADA / DESTACADAS
-// ==========================
 router.get('/carousel', cacheV2, /*#__PURE__*/function () {
   var _ref4 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(req, res) {
     var Post, main, sides, _main, excludeIds, faltan, autoSides, carousel, _t4;
@@ -286,7 +280,6 @@ router.get('/carousel', cacheV2, /*#__PURE__*/function () {
         case 9:
           _context4.p = 9;
           _t4 = _context4.v;
-          console.error('[carousel]', _t4);
           res.status(500).json({
             message: _t4.message
           });
@@ -486,7 +479,6 @@ router.get('/destacadas', cacheV2, /*#__PURE__*/function () {
         case 6:
           _context7.p = 6;
           _t7 = _context7.v;
-          console.error('[destacadas]', _t7);
           res.status(500).json({
             message: _t7.message
           });
@@ -610,10 +602,6 @@ router.get('/slugs', cacheV2, /*#__PURE__*/function () {
     return _ref0.apply(this, arguments);
   };
 }());
-
-// ==========================
-// 6. ADMIN PATCH
-// ==========================
 router.patch('/:id/portada', /*#__PURE__*/function () {
   var _ref1 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(req, res) {
     var Post, active, _t1;
@@ -806,10 +794,6 @@ router.patch('/:id/destacada', /*#__PURE__*/function () {
     return _ref12.apply(this, arguments);
   };
 }());
-
-// ==========================
-// 7. FIX COMPATIBILIDAD - VA ANTES DEL /:id
-// ==========================
 router.get('/slug/:slug', cacheV2, /*#__PURE__*/function () {
   var _ref13 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee13(req, res) {
     var Post, post, _t13;
@@ -855,51 +839,173 @@ router.get('/slug/:slug', cacheV2, /*#__PURE__*/function () {
 }());
 
 // ==========================
-// 8. ESTE SIEMPRE ULTIMO
+// ESTO ES LO QUE TE FALTABA REY - PUT Y DELETE
+// TIENE QUE IR ANTES DEL GET /:id
 // ==========================
-router.get('/:id', /*#__PURE__*/function () {
+router.put('/:id', /*#__PURE__*/function () {
   var _ref14 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14(req, res) {
-    var id, Post, post, _t14;
+    var Post, updated, _t14;
     return _regenerator().w(function (_context14) {
       while (1) switch (_context14.p = _context14.n) {
         case 0:
           _context14.p = 0;
-          id = req.params.id;
-          if (!['search', 'last', 'destacada', 'destacadas', 'portada', 'carousel', 'ultimas', 'mas-leidas', 'slugs', 'slug'].includes(id)) {
-            _context14.n = 1;
+          Post = getPostModel();
+          _context14.n = 1;
+          return Post.findByIdAndUpdate(req.params.id, req.body, {
+            "new": true
+          });
+        case 1:
+          updated = _context14.v;
+          if (updated) {
+            _context14.n = 2;
             break;
           }
           return _context14.a(2, res.status(404).json({
+            message: 'No encontrado para update'
+          }));
+        case 2:
+          res.json({
+            data: updated,
+            post: updated
+          });
+          _context14.n = 4;
+          break;
+        case 3:
+          _context14.p = 3;
+          _t14 = _context14.v;
+          console.error('[PUT v2]', _t14);
+          res.status(500).json({
+            message: _t14.message
+          });
+        case 4:
+          return _context14.a(2);
+      }
+    }, _callee14, null, [[0, 3]]);
+  }));
+  return function (_x29, _x30) {
+    return _ref14.apply(this, arguments);
+  };
+}());
+router["delete"]('/:id', /*#__PURE__*/function () {
+  var _ref15 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee15(req, res) {
+    var Post, id, deleted, _t15;
+    return _regenerator().w(function (_context15) {
+      while (1) switch (_context15.p = _context15.n) {
+        case 0:
+          _context15.p = 0;
+          Post = getPostModel();
+          id = req.params.id;
+          console.log("[DELETE V2] Intentando borrar ".concat(id));
+          deleted = null;
+          if (!_mongoose["default"].Types.ObjectId.isValid(id)) {
+            _context15.n = 2;
+            break;
+          }
+          _context15.n = 1;
+          return Post.findByIdAndDelete(id);
+        case 1:
+          deleted = _context15.v;
+          _context15.n = 5;
+          break;
+        case 2:
+          _context15.n = 3;
+          return Post.findOneAndDelete({
+            _id: id
+          });
+        case 3:
+          deleted = _context15.v;
+          if (deleted) {
+            _context15.n = 5;
+            break;
+          }
+          _context15.n = 4;
+          return Post.findOneAndDelete({
+            Entry_Slug: id
+          });
+        case 4:
+          deleted = _context15.v;
+        case 5:
+          if (deleted) {
+            _context15.n = 6;
+            break;
+          }
+          return _context15.a(2, res.status(404).json({
+            status: 404,
+            message: 'Ruta no encontrada o ID no existe',
+            path: req.originalUrl,
+            id: id
+          }));
+        case 6:
+          res.json({
+            ok: true,
+            message: 'Borrado V2',
+            id: id
+          });
+          _context15.n = 8;
+          break;
+        case 7:
+          _context15.p = 7;
+          _t15 = _context15.v;
+          console.error('[DELETE V2]', _t15);
+          res.status(500).json({
+            message: _t15.message
+          });
+        case 8:
+          return _context15.a(2);
+      }
+    }, _callee15, null, [[0, 7]]);
+  }));
+  return function (_x31, _x32) {
+    return _ref15.apply(this, arguments);
+  };
+}());
+
+// ==========================
+// 8. ESTE SIEMPRE ULTIMO
+// ==========================
+router.get('/:id', /*#__PURE__*/function () {
+  var _ref16 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee16(req, res) {
+    var id, Post, post, _t16;
+    return _regenerator().w(function (_context16) {
+      while (1) switch (_context16.p = _context16.n) {
+        case 0:
+          _context16.p = 0;
+          id = req.params.id;
+          if (!['search', 'last', 'destacada', 'destacadas', 'portada', 'carousel', 'ultimas', 'mas-leidas', 'slugs', 'slug'].includes(id)) {
+            _context16.n = 1;
+            break;
+          }
+          return _context16.a(2, res.status(404).json({
             message: 'Ruta no encontrada'
           }));
         case 1:
           Post = getPostModel();
           post = null;
           if (!_mongoose["default"].Types.ObjectId.isValid(id)) {
-            _context14.n = 3;
+            _context16.n = 3;
             break;
           }
-          _context14.n = 2;
+          _context16.n = 2;
           return Post.findById(id).lean();
         case 2:
-          post = _context14.v;
+          post = _context16.v;
         case 3:
           if (post) {
-            _context14.n = 5;
+            _context16.n = 5;
             break;
           }
-          _context14.n = 4;
+          _context16.n = 4;
           return Post.findOne({
             Entry_Slug: id
           }).lean();
         case 4:
-          post = _context14.v;
+          post = _context16.v;
         case 5:
           if (post) {
-            _context14.n = 6;
+            _context16.n = 6;
             break;
           }
-          return _context14.a(2, res.status(404).json({
+          return _context16.a(2, res.status(404).json({
             message: 'No encontrado'
           }));
         case 6:
@@ -907,21 +1013,21 @@ router.get('/:id', /*#__PURE__*/function () {
             data: post,
             post: post
           });
-          _context14.n = 8;
+          _context16.n = 8;
           break;
         case 7:
-          _context14.p = 7;
-          _t14 = _context14.v;
+          _context16.p = 7;
+          _t16 = _context16.v;
           res.status(500).json({
-            message: _t14.message
+            message: _t16.message
           });
         case 8:
-          return _context14.a(2);
+          return _context16.a(2);
       }
-    }, _callee14, null, [[0, 7]]);
+    }, _callee16, null, [[0, 7]]);
   }));
-  return function (_x29, _x30) {
-    return _ref14.apply(this, arguments);
+  return function (_x33, _x34) {
+    return _ref16.apply(this, arguments);
   };
 }());
 var _default = exports["default"] = router;
