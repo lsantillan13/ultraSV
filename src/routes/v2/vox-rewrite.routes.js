@@ -2,57 +2,51 @@ import express from "express";
 import axios from "axios";
 const router = express.Router();
 
-const SYSTEM_PROMPT = `Sos EDITOR JEFE de Ultravox Neuquén. Reescribí notas con calidad Clarín.
-NUNCA inventes datos. Tono neuquino profesional.
-Devolvé SOLO JSON:
-{"titulo":"60-75c","bajada":"140-160c","contenido_mejorado":"HTML <p><h2><strong>","palabras_clave":["neuquen"],"slug_seo":"slug","resumen_seo":"155c"}`;
+const SYSTEM_PROMPT = `
+Sos EDITOR JEFE de un diario digital argentino.
 
-const OPENROUTER_MODELS_FREE = [
+TAREA: Reescribir la noticia que te dan, manteniendo TODA la información.
+
+REGLAS OBLIGATORIAS:
+1. LARGO PROPORCIONAL: Contá las palabras del texto original. Devolvé la MISMA cantidad de palabras o un poco más (90% a 110%). Si el original tiene 200 palabras, devolvés 200. Si tiene 800, devolvés 800. NUNCA resumas.
+2. PROHIBIDO INVENTAR: No inventes fechas, años, nombres, montos, lugares, cargos, estadísticas. Copiá exactamente lo que dice el texto original. Si dice "fin de año", dejá "fin de año". No agregues el año si no está.
+3. CONSERVAR TODO: Mantené todas las declaraciones textuales, todos los nombres propios, todos los números, todas las calles/barrios/organismos.
+4. FORMATO: Usá HTML para contenido_mejorado: <p> para párrafos, <h2> para cada subtítulo que ya exista en el original, <strong> para datos clave. 5 a 10 párrafos según el largo original.
+5. Tono: Profesional, objetivo, argentino.
+
+Devolvé SOLO JSON válido:
+{"titulo":"60-75 caracteres, atractivo","bajada":"150-180 caracteres","contenido_mejorado":"HTML largo y proporcional","palabras_clave":["3 a 5 keywords"],"slug_seo":"slug-seo-corto","resumen_seo":"155 caracteres"}
+`;
+
+const MODELS_FREE = [
   "deepseek/deepseek-chat:free",
   "deepseek/deepseek-r1:free",
-  "meta-llama/llama-3.3-70b-instruct:free",
   "qwen/qwen-2.5-72b-instruct:free",
-  "google/gemini-flash-1.5-8b:free"
-];
-
-const GROQ_MODELS_FREE = [
-  "deepseek-r1-distill-llama-70b",
-  "llama-3.3-70b-versatile",
-  "llama-3.1-8b-instant"
+  "meta-llama/llama-3.3-70b-instruct:free"
 ];
 
 function extractJSON(t){
   const m = t.match(/\{[\s\S]*\}/);
-  if(!m) throw new Error("No JSON");
+  if(!m) throw new Error("No JSON en respuesta");
   return JSON.parse(m[0]);
 }
 
-async function callOpenRouter(model, prompt){
+async function callOR(model, prompt){
   const r = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
     model,
-    messages: [{role:"system",content:SYSTEM_PROMPT},{role:"user",content:prompt}],
-    temperature: 0.4,
-    max_tokens: 1200
+    messages: [
+      {role:"system", content: SYSTEM_PROMPT},
+      {role:"user", content: prompt}
+    ],
+    temperature: 0.15,
+    max_tokens: 4000
   },{
     headers: {
       "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
       "HTTP-Referer": "https://ultravox.com.ar",
       "X-Title": "Ultravox"
     },
-    timeout: 25000
-  });
-  return extractJSON(r.data.choices[0].message.content);
-}
-
-async function callGroq(model, prompt){
-  const r = await axios.post("https://api.groq.com/openai/v1/chat/completions", {
-    model,
-    messages: [{role:"system",content:SYSTEM_PROMPT},{role:"user",content:prompt}],
-    temperature: 0.4,
-    max_tokens: 1200
-  },{
-    headers: {Authorization: `Bearer ${process.env.GROQ_API_KEY}`},
-    timeout: 20000
+    timeout: 45000
   });
   return extractJSON(r.data.choices[0].message.content);
 }
@@ -60,66 +54,48 @@ async function callGroq(model, prompt){
 router.post("/", async (req,res)=>{
   try{
     const original = req.body.texto_original || req.body.contenido || "";
-    if(!original) return res.status(400).json({ok:false,error:"Falta contenido"});
+    if(!original || original.length < 50) return res.status(400).json({ok:false, error:"Texto muy corto"});
 
-    const contenido = original.slice(0, 3000);
-    const prompt = `MODO:${req.body.modo||"simple"} FUENTE:${req.body.fuente1||""}\n${contenido}\nSolo JSON.`;
+    const wordCount = original.trim().split(/\s+/).length;
+    const contenido = original.slice(0, 8000);
 
-    console.log(`[vox] ${original.length} -> ${contenido.length}`);
+    const prompt = `TEXTO ORIGINAL: ${wordCount} palabras. Tenés que devolver ${wordCount} palabras aprox, no menos de ${Math.floor(wordCount*0.9)}. No resumas, reescribí completo conservando todo.
 
-    for(const model of OPENROUTER_MODELS_FREE){
+${contenido}
+
+Devolvé JSON largo ahora.`;
+
+    for(const model of MODELS_FREE){
       try{
-        console.log(`[vox] OR ${model}`);
-        const data = await callOpenRouter(model, prompt);
-        return res.json({
-          ok: true,
-          model,
-          titulo: data.titulo,
-          bajada: data.bajada,
-          contenido_mejorado: data.contenido_mejorado,
-          palabras_clave: data.palabras_clave,
-          slug_seo: data.slug_seo,
-          resumen_seo: data.resumen_seo,
-          data: {
-            Entry_Title: data.titulo,
-            Entry_Bajada: data.bajada,
-            Entry_Content: data.contenido_mejorado
-          }
-        });
-      }catch(e){
-        console.log(`Fallo ${model}: ${e.response?.data?.error?.message || e.message}`);
-        continue;
-      }
-    }
+        console.log(`[vox] IN: ${wordCount} palabras -> ${model}`);
+        const data = await callOR(model, prompt);
 
-    for(const model of GROQ_MODELS_FREE){
-      try{
-        console.log(`[vox] Groq ${model}`);
-        const data = await callGroq(model, prompt);
-        return res.json({
-          ok: true,
-          model,
-          titulo: data.titulo,
-          bajada: data.bajada,
-          contenido_mejorado: data.contenido_mejorado,
-          palabras_clave: data.palabras_clave,
-          slug_seo: data.slug_seo,
-          resumen_seo: data.resumen_seo,
-          data: {
-            Entry_Title: data.titulo,
-            Entry_Bajada: data.bajada,
-            Entry_Content: data.contenido_mejorado
-          }
-        });
-      }catch(e){
-        if(e.response?.data?.error?.code==="rate_limit_exceeded"){
-          await new Promise(r=>setTimeout(r, 2000));
+        const outWords = (data.contenido_mejorado || "").replace(/<[^>]*>/g," ").split(/\s+/).filter(Boolean).length;
+        console.log(`[vox] OUT: ${outWords} palabras`);
+
+        // Validación proporcional genérica
+        if(outWords < wordCount * 0.7){
+          throw new Error(`Resumen detectado: ${outWords} palabras vs ${wordCount} originales. Reintento.`);
         }
+
+        return res.json({
+          ok: true,
+          model,
+          stats: { in: wordCount, out: outWords },
+         ...data,
+          data: {
+            Entry_Title: data.titulo,
+            Entry_Bajada: data.bajada,
+            Entry_Content: data.contenido_mejorado
+          }
+        });
+      }catch(e){
+        console.log(`[vox] Falló ${model}: ${e.message}`);
         continue;
       }
     }
 
-    return res.status(429).json({ok:false, error:"rate_limited_all_free"});
+    return res.status(500).json({ok:false, error:"all_free_models_failed"});
   }catch(e){
     console.error(e.response?.data || e.message);
     res.status(500).json({ok:false, error:e.message});
