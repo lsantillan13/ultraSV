@@ -1,6 +1,5 @@
 "use strict";
 
-function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
@@ -10,40 +9,98 @@ var _axios = _interopRequireDefault(require("axios"));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default": e }; }
 function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i["return"]) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
 function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
-function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
-function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
-function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
-function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
-function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
 var router = _express["default"].Router();
-
-// MODELOS VIGENTES HOY - verificados en console.groq.com/docs/models
-var MODELS = ["openai/gpt-oss-20b",
-// 1000 t/s - reemplazo oficial de llama-3.1-8b-instant
-"openai/gpt-oss-120b",
-// 500 t/s - calidad máxima
-"qwen/qwen3.6-27b" // fallback
-];
-var SYSTEM_PROMPT = "\nSos el EDITOR JEFE de Ultravox, el diario digital #1 de Neuqu\xE9n Capital.\nTu trabajo es reescribir notas para web con calidad Clar\xEDn + Infobae.\n\nREGLAS INQUEBRANTABLES:\n1. NUNCA inventes datos, nombres, fechas, montos o lugares. Si no est\xE1 en el original, no lo agregues.\n2. Manten\xE9 la informaci\xF3n factual 100% intacta.\n3. Mejor\xE1 redacci\xF3n, ortograf\xEDa, fluidez y SEO.\n4. Tono: period\xEDstico neuquino, profesional, cercano, sin sensacionalismo berreta.\n5. NO uses clickbait. Titular informativo pero atractivo.\n\nFORMATO DE SALIDA - JSON V\xC1LIDO OBLIGATORIO:\n{\n  \"titulo\": \"60-75 caracteres, con palabra clave principal al inicio, ej: 'Neuqu\xE9n:...'\",\n  \"bajada\": \"140-160 caracteres, resumen que incite a leer, con 1 dato clave\",\n  \"contenido_mejorado\": \"HTML limpio con <p>, <h2>, <strong>. 3 a 5 p\xE1rrafos. Primer p\xE1rrafo con lo m\xE1s importante. Us\xE1 <h2> para subt\xEDtulos si la nota es larga. Negrita para datos clave. Lenguaje claro.\",\n  \"palabras_clave\": [\"neuquen\", \"palabra2\", \"palabra3\"],\n  \"slug_seo\": \"titulo-en-minusculas-con-guiones\",\n  \"resumen_seo\": \"155 caracteres para meta description\"\n}\n\nESTILO NEUQU\xC9N:\n- Dec\xED \"Neuqu\xE9n capital\" no solo \"Neuqu\xE9n\" cuando sea de la ciudad\n- Us\xE1 referencias locales si aplica (Av Argentina, Paseo Costero, CALF, etc)\n- Evit\xE1 porte\xF1ismos\n\nSi el contenido original es malo o corto, mejoralo igual sin inventar.\nSi no pod\xE9s mejorar, devolv\xE9 el original pulido.\n";
+var SYSTEM_PROMPT = "Sos EDITOR JEFE de Ultravox Neuqu\xE9n. Reescrib\xED notas con calidad Clar\xEDn.\nNUNCA inventes datos. Tono neuquino profesional.\nDevolv\xE9 SOLO JSON:\n{\"titulo\":\"60-75c\",\"bajada\":\"140-160c\",\"contenido_mejorado\":\"HTML <p><h2><strong>\",\"palabras_clave\":[\"neuquen\"],\"slug_seo\":\"slug\",\"resumen_seo\":\"155c\"}";
+var OPENROUTER_MODELS_FREE = ["deepseek/deepseek-chat:free", "deepseek/deepseek-r1:free", "meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen-2.5-72b-instruct:free", "google/gemini-flash-1.5-8b:free"];
+var GROQ_MODELS_FREE = ["deepseek-r1-distill-llama-70b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
+function extractJSON(t) {
+  var m = t.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error("No JSON");
+  return JSON.parse(m[0]);
+}
+function callOpenRouter(_x, _x2) {
+  return _callOpenRouter.apply(this, arguments);
+}
+function _callOpenRouter() {
+  _callOpenRouter = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(model, prompt) {
+    var r;
+    return _regenerator().w(function (_context2) {
+      while (1) switch (_context2.n) {
+        case 0:
+          _context2.n = 1;
+          return _axios["default"].post("https://openrouter.ai/api/v1/chat/completions", {
+            model: model,
+            messages: [{
+              role: "system",
+              content: SYSTEM_PROMPT
+            }, {
+              role: "user",
+              content: prompt
+            }],
+            temperature: 0.4,
+            max_tokens: 1200
+          }, {
+            headers: {
+              "Authorization": "Bearer ".concat(process.env.OPENROUTER_API_KEY),
+              "HTTP-Referer": "https://ultravox.com.ar",
+              "X-Title": "Ultravox"
+            },
+            timeout: 25000
+          });
+        case 1:
+          r = _context2.v;
+          return _context2.a(2, extractJSON(r.data.choices[0].message.content));
+      }
+    }, _callee2);
+  }));
+  return _callOpenRouter.apply(this, arguments);
+}
+function callGroq(_x3, _x4) {
+  return _callGroq.apply(this, arguments);
+}
+function _callGroq() {
+  _callGroq = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(model, prompt) {
+    var r;
+    return _regenerator().w(function (_context3) {
+      while (1) switch (_context3.n) {
+        case 0:
+          _context3.n = 1;
+          return _axios["default"].post("https://api.groq.com/openai/v1/chat/completions", {
+            model: model,
+            messages: [{
+              role: "system",
+              content: SYSTEM_PROMPT
+            }, {
+              role: "user",
+              content: prompt
+            }],
+            temperature: 0.4,
+            max_tokens: 1200
+          }, {
+            headers: {
+              Authorization: "Bearer ".concat(process.env.GROQ_API_KEY)
+            },
+            timeout: 20000
+          });
+        case 1:
+          r = _context3.v;
+          return _context3.a(2, extractJSON(r.data.choices[0].message.content));
+      }
+    }, _callee3);
+  }));
+  return _callGroq.apply(this, arguments);
+}
 router.post("/", /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(req, res) {
-    var _req$body$texto_origi, titulo, bajada, contenido, contenidoCorto, userPrompt, lastError, _i, _MODELS, model, r, data, _err$response, _t, _t2;
+    var original, contenido, prompt, _i, _OPENROUTER_MODELS_FR, model, data, _e$response, _i2, _GROQ_MODELS_FREE, _model, _data, _e$response2, _e$response3, _t, _t2, _t3;
     return _regenerator().w(function (_context) {
       while (1) switch (_context.p = _context.n) {
         case 0:
           _context.p = 0;
-          console.log("LLEGÓ REQUEST", {
-            largo: (req.body.texto_original || req.body.contenido || "").length,
-            fuente1: req.body.fuente1,
-            modo: req.body.modo,
-            tieneKey: !!process.env.GROQ_API_KEY
-          });
-          titulo = req.body.titulo || ((_req$body$texto_origi = req.body.texto_original) === null || _req$body$texto_origi === void 0 ? void 0 : _req$body$texto_origi.slice(0, 200)) || "";
-          bajada = req.body.bajada || req.body.texto_secundario || "";
-          contenido = req.body.contenido || req.body.texto_original || "";
-          if (contenido) {
+          original = req.body.texto_original || req.body.contenido || "";
+          if (original) {
             _context.n = 1;
             break;
           }
@@ -52,86 +109,111 @@ router.post("/", /*#__PURE__*/function () {
             error: "Falta contenido"
           }));
         case 1:
-          // Groq max 131k pero cortamos a 12k para no pasarnos de TPM
-          contenidoCorto = contenido.slice(0, 12000);
-          userPrompt = "\nTONO: ".concat(req.body.modo || req.body.tono || "periodistico", "\nTITULO ORIGINAL: ").concat(titulo, "\nBAJADA: ").concat(bajada, "\nCONTENIDO:\n").concat(contenidoCorto, "\nFUENTE: ").concat(req.body.fuente1 || "", " ").concat(req.body.fuente2 || "", "\nInstrucci\xF3n: Reescrib\xED en JSON obligatorio.\n");
-          lastError = null;
-          _i = 0, _MODELS = MODELS;
+          contenido = original.slice(0, 3000);
+          prompt = "MODO:".concat(req.body.modo || "simple", " FUENTE:").concat(req.body.fuente1 || "", "\n").concat(contenido, "\nSolo JSON.");
+          console.log("[vox] ".concat(original.length, " -> ").concat(contenido.length));
+          _i = 0, _OPENROUTER_MODELS_FR = OPENROUTER_MODELS_FREE;
         case 2:
-          if (!(_i < _MODELS.length)) {
+          if (!(_i < _OPENROUTER_MODELS_FR.length)) {
             _context.n = 7;
             break;
           }
-          model = _MODELS[_i];
+          model = _OPENROUTER_MODELS_FR[_i];
           _context.p = 3;
-          console.log("[vox-rewrite] probando ".concat(model));
+          console.log("[vox] OR ".concat(model));
           _context.n = 4;
-          return _axios["default"].post("https://api.groq.com/openai/v1/chat/completions", {
-            model: model,
-            messages: [{
-              role: "system",
-              content: SYSTEM_PROMPT
-            }, {
-              role: "user",
-              content: userPrompt
-            }],
-            temperature: 0.5,
-            max_tokens: 3500,
-            response_format: {
-              type: "json_object"
-            }
-          }, {
-            headers: {
-              Authorization: "Bearer ".concat(process.env.GROQ_API_KEY)
-            },
-            timeout: 30000
-          });
+          return callOpenRouter(model, prompt);
         case 4:
-          r = _context.v;
-          data = JSON.parse(r.data.choices[0].message.content);
-          console.log("[vox-rewrite] OK con ".concat(model));
-          return _context.a(2, res.json(_objectSpread(_objectSpread({
+          data = _context.v;
+          return _context.a(2, res.json({
             ok: true,
-            model: model
-          }, data), {}, {
+            model: model,
+            titulo: data.titulo,
+            bajada: data.bajada,
+            contenido_mejorado: data.contenido_mejorado,
+            palabras_clave: data.palabras_clave,
+            slug_seo: data.slug_seo,
+            resumen_seo: data.resumen_seo,
             data: {
               Entry_Title: data.titulo,
               Entry_Bajada: data.bajada,
-              Entry_Content: data.contenido_mejorado,
-              Entry_Slug: data.slug_seo,
-              Entry_Resume: data.resumen_seo,
-              Entry_Keywords: data.palabras_clave
+              Entry_Content: data.contenido_mejorado
             }
-          })));
+          }));
         case 5:
           _context.p = 5;
           _t = _context.v;
-          lastError = ((_err$response = _t.response) === null || _err$response === void 0 ? void 0 : _err$response.data) || {
-            message: _t.message
-          };
-          console.log("FALL\xD3 ".concat(model, ":"), lastError);
+          console.log("Fallo ".concat(model, ": ").concat(((_e$response = _t.response) === null || _e$response === void 0 || (_e$response = _e$response.data) === null || _e$response === void 0 || (_e$response = _e$response.error) === null || _e$response === void 0 ? void 0 : _e$response.message) || _t.message));
           return _context.a(3, 6);
         case 6:
           _i++;
           _context.n = 2;
           break;
         case 7:
-          throw lastError;
+          _i2 = 0, _GROQ_MODELS_FREE = GROQ_MODELS_FREE;
         case 8:
-          _context.p = 8;
+          if (!(_i2 < _GROQ_MODELS_FREE.length)) {
+            _context.n = 14;
+            break;
+          }
+          _model = _GROQ_MODELS_FREE[_i2];
+          _context.p = 9;
+          console.log("[vox] Groq ".concat(_model));
+          _context.n = 10;
+          return callGroq(_model, prompt);
+        case 10:
+          _data = _context.v;
+          return _context.a(2, res.json({
+            ok: true,
+            model: _model,
+            titulo: _data.titulo,
+            bajada: _data.bajada,
+            contenido_mejorado: _data.contenido_mejorado,
+            palabras_clave: _data.palabras_clave,
+            slug_seo: _data.slug_seo,
+            resumen_seo: _data.resumen_seo,
+            data: {
+              Entry_Title: _data.titulo,
+              Entry_Bajada: _data.bajada,
+              Entry_Content: _data.contenido_mejorado
+            }
+          }));
+        case 11:
+          _context.p = 11;
           _t2 = _context.v;
-          console.error("ERROR GROQ COMPLETO:", _t2.error || _t2);
+          if (!(((_e$response2 = _t2.response) === null || _e$response2 === void 0 || (_e$response2 = _e$response2.data) === null || _e$response2 === void 0 || (_e$response2 = _e$response2.error) === null || _e$response2 === void 0 ? void 0 : _e$response2.code) === "rate_limit_exceeded")) {
+            _context.n = 12;
+            break;
+          }
+          _context.n = 12;
+          return new Promise(function (r) {
+            return setTimeout(r, 2000);
+          });
+        case 12:
+          return _context.a(3, 13);
+        case 13:
+          _i2++;
+          _context.n = 8;
+          break;
+        case 14:
+          return _context.a(2, res.status(429).json({
+            ok: false,
+            error: "rate_limited_all_free"
+          }));
+        case 15:
+          _context.p = 15;
+          _t3 = _context.v;
+          console.error(((_e$response3 = _t3.response) === null || _e$response3 === void 0 ? void 0 : _e$response3.data) || _t3.message);
           res.status(500).json({
             ok: false,
-            error: "Falta el backend o falló Groq",
-            detail: _t2.error || _t2.message
+            error: _t3.message
           });
-        case 9:
+        case 16:
           return _context.a(2);
       }
-    }, _callee, null, [[3, 5], [0, 8]]);
+    }, _callee, null, [[9, 11], [3, 5], [0, 15]]);
   }));
-  return function (_x, _x2) {
+  return function (_x5, _x6) {
     return _ref.apply(this, arguments);
   };
 }());
