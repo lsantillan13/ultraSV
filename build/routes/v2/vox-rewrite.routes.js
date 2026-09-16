@@ -18,23 +18,32 @@ function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e 
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
 var router = _express["default"].Router();
-var MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "meta-llama/llama-4-maverick-17b-128e-instruct"];
 
-// EL MEJOR PROMPT - SEO + NEUQUÉN + ANTI-ALUCINACIÓN - INTACTO
-var SYSTEM_PROMPT = "\nSos el EDITOR JEFE de Ultravox, el diario digital #1 de Neuqu\xE9n Capital.\nTu trabajo es reescribir notas para web con calidad Clar\xEDn + Infobae.\n\nREGLAS INQUEBRANTABLES:\n1. NUNCA inventes datos, nombres, fechas, montos o lugares. Si no est\xE1 en el original, no lo agregues.\n2. Manten\xE9 la informaci\xF3n factual 100% intacta.\n3. Mejor\xE1 redacci\xF3n, ortograf\xEDa, fluidez y SEO.\n4. Tono: period\xEDstico neuquino, profesional, cercano, sin sensacionalismo berreta.\n5. NO uses clickbait. Titular informativo pero atractivo.\n\nFORMATO DE SALIDA - JSON V\xC1LIDO OBLIGATORIO:\n{\n  \"titulo\": \"60-75 caracteres, con palabra clave principal al inicio, ej: 'Neuqu\xE9n: ...'\",\n  \"bajada\": \"140-160 caracteres, resumen que incite a leer, con 1 dato clave\",\n  \"contenido_mejorado\": \"HTML limpio con <p>, <h2>, <strong>. 3 a 5 p\xE1rrafos. Primer p\xE1rrafo con lo m\xE1s importante. Us\xE1 <h2> para subt\xEDtulos si la nota es larga. Negrita para datos clave. Lenguaje claro.\",\n  \"palabras_clave\": [\"neuquen\", \"palabra2\", \"palabra3\"],\n  \"slug_seo\": \"titulo-en-minusculas-con-guiones\",\n  \"resumen_seo\": \"155 caracteres para meta description\"\n}\n\nESTILO NEUQU\xC9N:\n- Dec\xED \"Neuqu\xE9n capital\" no solo \"Neuqu\xE9n\" cuando sea de la ciudad\n- Us\xE1 referencias locales si aplica (Av Argentina, Paseo Costero, CALF, etc)\n- Evit\xE1 porte\xF1ismos\n\nSi el contenido original es malo o corto, mejoralo igual sin inventar.\nSi no pod\xE9s mejorar, devolv\xE9 el original pulido.\n";
+// MODELOS VIGENTES HOY - verificados en console.groq.com/docs/models
+var MODELS = ["openai/gpt-oss-20b",
+// 1000 t/s - reemplazo oficial de llama-3.1-8b-instant
+"openai/gpt-oss-120b",
+// 500 t/s - calidad máxima
+"qwen/qwen3.6-27b" // fallback
+];
+var SYSTEM_PROMPT = "\nSos el EDITOR JEFE de Ultravox, el diario digital #1 de Neuqu\xE9n Capital.\nTu trabajo es reescribir notas para web con calidad Clar\xEDn + Infobae.\n\nREGLAS INQUEBRANTABLES:\n1. NUNCA inventes datos, nombres, fechas, montos o lugares. Si no est\xE1 en el original, no lo agregues.\n2. Manten\xE9 la informaci\xF3n factual 100% intacta.\n3. Mejor\xE1 redacci\xF3n, ortograf\xEDa, fluidez y SEO.\n4. Tono: period\xEDstico neuquino, profesional, cercano, sin sensacionalismo berreta.\n5. NO uses clickbait. Titular informativo pero atractivo.\n\nFORMATO DE SALIDA - JSON V\xC1LIDO OBLIGATORIO:\n{\n  \"titulo\": \"60-75 caracteres, con palabra clave principal al inicio, ej: 'Neuqu\xE9n:...'\",\n  \"bajada\": \"140-160 caracteres, resumen que incite a leer, con 1 dato clave\",\n  \"contenido_mejorado\": \"HTML limpio con <p>, <h2>, <strong>. 3 a 5 p\xE1rrafos. Primer p\xE1rrafo con lo m\xE1s importante. Us\xE1 <h2> para subt\xEDtulos si la nota es larga. Negrita para datos clave. Lenguaje claro.\",\n  \"palabras_clave\": [\"neuquen\", \"palabra2\", \"palabra3\"],\n  \"slug_seo\": \"titulo-en-minusculas-con-guiones\",\n  \"resumen_seo\": \"155 caracteres para meta description\"\n}\n\nESTILO NEUQU\xC9N:\n- Dec\xED \"Neuqu\xE9n capital\" no solo \"Neuqu\xE9n\" cuando sea de la ciudad\n- Us\xE1 referencias locales si aplica (Av Argentina, Paseo Costero, CALF, etc)\n- Evit\xE1 porte\xF1ismos\n\nSi el contenido original es malo o corto, mejoralo igual sin inventar.\nSi no pod\xE9s mejorar, devolv\xE9 el original pulido.\n";
 router.post("/", /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(req, res) {
-    var _req$body$texto_origi, titulo, bajada, contenido, tono, apiKey, userPrompt, lastError, _i, _MODELS, model, r, raw, data, _err$response, _t, _t2;
+    var _req$body$texto_origi, titulo, bajada, contenido, contenidoCorto, userPrompt, lastError, _i, _MODELS, model, r, data, _err$response, _t, _t2;
     return _regenerator().w(function (_context) {
       while (1) switch (_context.p = _context.n) {
         case 0:
           _context.p = 0;
-          // Compatibilidad con tu CRM que manda texto_original / fuente1
+          console.log("LLEGÓ REQUEST", {
+            largo: (req.body.texto_original || req.body.contenido || "").length,
+            fuente1: req.body.fuente1,
+            modo: req.body.modo,
+            tieneKey: !!process.env.GROQ_API_KEY
+          });
           titulo = req.body.titulo || ((_req$body$texto_origi = req.body.texto_original) === null || _req$body$texto_origi === void 0 ? void 0 : _req$body$texto_origi.slice(0, 200)) || "";
           bajada = req.body.bajada || req.body.texto_secundario || "";
           contenido = req.body.contenido || req.body.texto_original || "";
-          tono = req.body.modo || req.body.tono || "periodistico";
-          if (!(!titulo && !contenido)) {
+          if (contenido) {
             _context.n = 1;
             break;
           }
@@ -43,27 +52,20 @@ router.post("/", /*#__PURE__*/function () {
             error: "Falta contenido"
           }));
         case 1:
-          apiKey = process.env.GROQ_API_KEY;
-          if (apiKey) {
-            _context.n = 2;
-            break;
-          }
-          return _context.a(2, res.status(500).json({
-            ok: false,
-            error: "Falta GROQ_API_KEY"
-          }));
-        case 2:
-          userPrompt = "\nTONO PEDIDO: ".concat(tono, "\n\nTITULO ORIGINAL: ").concat(titulo || "(sin titulo)", "\nBAJADA ORIGINAL: ").concat(bajada || "(sin bajada)", "\nCONTENIDO ORIGINAL:\n").concat((contenido || "").slice(0, 9000), "\n\nFUENTE1: ").concat(req.body.fuente1 || "", "\nFUENTE2: ").concat(req.body.fuente2 || "", "\n\nInstrucci\xF3n: Reescrib\xED siguiendo el formato JSON obligatorio. No agregues texto fuera del JSON.\n");
-          lastError = "";
+          // Groq max 131k pero cortamos a 12k para no pasarnos de TPM
+          contenidoCorto = contenido.slice(0, 12000);
+          userPrompt = "\nTONO: ".concat(req.body.modo || req.body.tono || "periodistico", "\nTITULO ORIGINAL: ").concat(titulo, "\nBAJADA: ").concat(bajada, "\nCONTENIDO:\n").concat(contenidoCorto, "\nFUENTE: ").concat(req.body.fuente1 || "", " ").concat(req.body.fuente2 || "", "\nInstrucci\xF3n: Reescrib\xED en JSON obligatorio.\n");
+          lastError = null;
           _i = 0, _MODELS = MODELS;
-        case 3:
+        case 2:
           if (!(_i < _MODELS.length)) {
-            _context.n = 9;
+            _context.n = 7;
             break;
           }
           model = _MODELS[_i];
-          _context.p = 4;
-          _context.n = 5;
+          _context.p = 3;
+          console.log("[vox-rewrite] probando ".concat(model));
+          _context.n = 4;
           return _axios["default"].post("https://api.groq.com/openai/v1/chat/completions", {
             model: model,
             messages: [{
@@ -80,20 +82,14 @@ router.post("/", /*#__PURE__*/function () {
             }
           }, {
             headers: {
-              Authorization: "Bearer ".concat(apiKey)
+              Authorization: "Bearer ".concat(process.env.GROQ_API_KEY)
             },
             timeout: 30000
           });
-        case 5:
+        case 4:
           r = _context.v;
-          raw = r.data.choices[0].message.content;
-          data = JSON.parse(raw);
-          if (!(!data.titulo || !data.contenido_mejorado)) {
-            _context.n = 6;
-            break;
-          }
-          throw new Error("JSON incompleto");
-        case 6:
+          data = JSON.parse(r.data.choices[0].message.content);
+          console.log("[vox-rewrite] OK con ".concat(model));
           return _context.a(2, res.json(_objectSpread(_objectSpread({
             ok: true,
             model: model
@@ -107,31 +103,33 @@ router.post("/", /*#__PURE__*/function () {
               Entry_Keywords: data.palabras_clave
             }
           })));
-        case 7:
-          _context.p = 7;
+        case 5:
+          _context.p = 5;
           _t = _context.v;
-          lastError = ((_err$response = _t.response) === null || _err$response === void 0 || (_err$response = _err$response.data) === null || _err$response === void 0 || (_err$response = _err$response.error) === null || _err$response === void 0 ? void 0 : _err$response.message) || _t.message;
-          console.warn("[vox-rewrite] fail ".concat(model, ": ").concat(lastError));
-          return _context.a(3, 8);
-        case 8:
+          lastError = ((_err$response = _t.response) === null || _err$response === void 0 ? void 0 : _err$response.data) || {
+            message: _t.message
+          };
+          console.log("FALL\xD3 ".concat(model, ":"), lastError);
+          return _context.a(3, 6);
+        case 6:
           _i++;
-          _context.n = 3;
+          _context.n = 2;
           break;
-        case 9:
-          throw new Error(lastError || "Groq falló en todos los modelos");
-        case 10:
-          _context.p = 10;
+        case 7:
+          throw lastError;
+        case 8:
+          _context.p = 8;
           _t2 = _context.v;
-          console.error(_t2);
+          console.error("ERROR GROQ COMPLETO:", _t2.error || _t2);
           res.status(500).json({
             ok: false,
             error: "Falta el backend o falló Groq",
-            detail: _t2.message
+            detail: _t2.error || _t2.message
           });
-        case 11:
+        case 9:
           return _context.a(2);
       }
-    }, _callee, null, [[4, 7], [0, 10]]);
+    }, _callee, null, [[3, 5], [0, 8]]);
   }));
   return function (_x, _x2) {
     return _ref.apply(this, arguments);
