@@ -8,7 +8,7 @@ const MODELS = [
   "meta-llama/llama-4-maverick-17b-128e-instruct"
 ];
 
-// EL MEJOR PROMPT - SEO + NEUQUÉN + ANTI-ALUCINACIÓN
+// EL MEJOR PROMPT - SEO + NEUQUÉN + ANTI-ALUCINACIÓN - INTACTO
 const SYSTEM_PROMPT = `
 Sos el EDITOR JEFE de Ultravox, el diario digital #1 de Neuquén Capital.
 Tu trabajo es reescribir notas para web con calidad Clarín + Infobae.
@@ -39,9 +39,14 @@ Si el contenido original es malo o corto, mejoralo igual sin inventar.
 Si no podés mejorar, devolvé el original pulido.
 `;
 
-router.post("/vox-rewrite", async (req, res) => {
+router.post("/", async (req, res) => {
   try {
-    const { titulo, bajada, contenido, tono = "periodistico" } = req.body;
+    // Compatibilidad con tu CRM que manda texto_original / fuente1
+    const titulo = req.body.titulo || req.body.texto_original?.slice(0,200) || "";
+    const bajada = req.body.bajada || req.body.texto_secundario || "";
+    const contenido = req.body.contenido || req.body.texto_original || "";
+    const tono = req.body.modo || req.body.tono || "periodistico";
+
     if (!titulo && !contenido) return res.status(400).json({ ok: false, error: "Falta contenido" });
 
     const apiKey = process.env.GROQ_API_KEY;
@@ -54,6 +59,9 @@ TITULO ORIGINAL: ${titulo || "(sin titulo)"}
 BAJADA ORIGINAL: ${bajada || "(sin bajada)"}
 CONTENIDO ORIGINAL:
 ${(contenido || "").slice(0, 9000)}
+
+FUENTE1: ${req.body.fuente1 || ""}
+FUENTE2: ${req.body.fuente2 || ""}
 
 Instrucción: Reescribí siguiendo el formato JSON obligatorio. No agregues texto fuera del JSON.
 `;
@@ -77,11 +85,22 @@ Instrucción: Reescribí siguiendo el formato JSON obligatorio. No agregues text
 
         const raw = r.data.choices[0].message.content;
         const data = JSON.parse(raw);
-        
-        // Validación mínima
         if (!data.titulo || !data.contenido_mejorado) throw new Error("JSON incompleto");
 
-        return res.json({ ok: true, model, ...data });
+        // Devuelve en los dos formatos para que tu VoxCRMResult no se rompa
+        return res.json({
+          ok: true,
+          model,
+          ...data,
+          data: {
+            Entry_Title: data.titulo,
+            Entry_Bajada: data.bajada,
+            Entry_Content: data.contenido_mejorado,
+            Entry_Slug: data.slug_seo,
+            Entry_Resume: data.resumen_seo,
+            Entry_Keywords: data.palabras_clave
+          }
+        });
 
       } catch (err) {
         lastError = err.response?.data?.error?.message || err.message;

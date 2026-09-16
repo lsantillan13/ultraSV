@@ -20,16 +20,20 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
 var router = _express["default"].Router();
 var MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "meta-llama/llama-4-maverick-17b-128e-instruct"];
 
-// EL MEJOR PROMPT - SEO + NEUQUÉN + ANTI-ALUCINACIÓN
+// EL MEJOR PROMPT - SEO + NEUQUÉN + ANTI-ALUCINACIÓN - INTACTO
 var SYSTEM_PROMPT = "\nSos el EDITOR JEFE de Ultravox, el diario digital #1 de Neuqu\xE9n Capital.\nTu trabajo es reescribir notas para web con calidad Clar\xEDn + Infobae.\n\nREGLAS INQUEBRANTABLES:\n1. NUNCA inventes datos, nombres, fechas, montos o lugares. Si no est\xE1 en el original, no lo agregues.\n2. Manten\xE9 la informaci\xF3n factual 100% intacta.\n3. Mejor\xE1 redacci\xF3n, ortograf\xEDa, fluidez y SEO.\n4. Tono: period\xEDstico neuquino, profesional, cercano, sin sensacionalismo berreta.\n5. NO uses clickbait. Titular informativo pero atractivo.\n\nFORMATO DE SALIDA - JSON V\xC1LIDO OBLIGATORIO:\n{\n  \"titulo\": \"60-75 caracteres, con palabra clave principal al inicio, ej: 'Neuqu\xE9n: ...'\",\n  \"bajada\": \"140-160 caracteres, resumen que incite a leer, con 1 dato clave\",\n  \"contenido_mejorado\": \"HTML limpio con <p>, <h2>, <strong>. 3 a 5 p\xE1rrafos. Primer p\xE1rrafo con lo m\xE1s importante. Us\xE1 <h2> para subt\xEDtulos si la nota es larga. Negrita para datos clave. Lenguaje claro.\",\n  \"palabras_clave\": [\"neuquen\", \"palabra2\", \"palabra3\"],\n  \"slug_seo\": \"titulo-en-minusculas-con-guiones\",\n  \"resumen_seo\": \"155 caracteres para meta description\"\n}\n\nESTILO NEUQU\xC9N:\n- Dec\xED \"Neuqu\xE9n capital\" no solo \"Neuqu\xE9n\" cuando sea de la ciudad\n- Us\xE1 referencias locales si aplica (Av Argentina, Paseo Costero, CALF, etc)\n- Evit\xE1 porte\xF1ismos\n\nSi el contenido original es malo o corto, mejoralo igual sin inventar.\nSi no pod\xE9s mejorar, devolv\xE9 el original pulido.\n";
-router.post("/vox-rewrite", /*#__PURE__*/function () {
+router.post("/", /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(req, res) {
-    var _req$body, titulo, bajada, contenido, _req$body$tono, tono, apiKey, userPrompt, lastError, _i, _MODELS, model, r, raw, data, _err$response, _t, _t2;
+    var _req$body$texto_origi, titulo, bajada, contenido, tono, apiKey, userPrompt, lastError, _i, _MODELS, model, r, raw, data, _err$response, _t, _t2;
     return _regenerator().w(function (_context) {
       while (1) switch (_context.p = _context.n) {
         case 0:
           _context.p = 0;
-          _req$body = req.body, titulo = _req$body.titulo, bajada = _req$body.bajada, contenido = _req$body.contenido, _req$body$tono = _req$body.tono, tono = _req$body$tono === void 0 ? "periodistico" : _req$body$tono;
+          // Compatibilidad con tu CRM que manda texto_original / fuente1
+          titulo = req.body.titulo || ((_req$body$texto_origi = req.body.texto_original) === null || _req$body$texto_origi === void 0 ? void 0 : _req$body$texto_origi.slice(0, 200)) || "";
+          bajada = req.body.bajada || req.body.texto_secundario || "";
+          contenido = req.body.contenido || req.body.texto_original || "";
+          tono = req.body.modo || req.body.tono || "periodistico";
           if (!(!titulo && !contenido)) {
             _context.n = 1;
             break;
@@ -49,7 +53,7 @@ router.post("/vox-rewrite", /*#__PURE__*/function () {
             error: "Falta GROQ_API_KEY"
           }));
         case 2:
-          userPrompt = "\nTONO PEDIDO: ".concat(tono, "\n\nTITULO ORIGINAL: ").concat(titulo || "(sin titulo)", "\nBAJADA ORIGINAL: ").concat(bajada || "(sin bajada)", "\nCONTENIDO ORIGINAL:\n").concat((contenido || "").slice(0, 9000), "\n\nInstrucci\xF3n: Reescrib\xED siguiendo el formato JSON obligatorio. No agregues texto fuera del JSON.\n");
+          userPrompt = "\nTONO PEDIDO: ".concat(tono, "\n\nTITULO ORIGINAL: ").concat(titulo || "(sin titulo)", "\nBAJADA ORIGINAL: ").concat(bajada || "(sin bajada)", "\nCONTENIDO ORIGINAL:\n").concat((contenido || "").slice(0, 9000), "\n\nFUENTE1: ").concat(req.body.fuente1 || "", "\nFUENTE2: ").concat(req.body.fuente2 || "", "\n\nInstrucci\xF3n: Reescrib\xED siguiendo el formato JSON obligatorio. No agregues texto fuera del JSON.\n");
           lastError = "";
           _i = 0, _MODELS = MODELS;
         case 3:
@@ -83,17 +87,26 @@ router.post("/vox-rewrite", /*#__PURE__*/function () {
         case 5:
           r = _context.v;
           raw = r.data.choices[0].message.content;
-          data = JSON.parse(raw); // Validación mínima
+          data = JSON.parse(raw);
           if (!(!data.titulo || !data.contenido_mejorado)) {
             _context.n = 6;
             break;
           }
           throw new Error("JSON incompleto");
         case 6:
-          return _context.a(2, res.json(_objectSpread({
+          return _context.a(2, res.json(_objectSpread(_objectSpread({
             ok: true,
             model: model
-          }, data)));
+          }, data), {}, {
+            data: {
+              Entry_Title: data.titulo,
+              Entry_Bajada: data.bajada,
+              Entry_Content: data.contenido_mejorado,
+              Entry_Slug: data.slug_seo,
+              Entry_Resume: data.resumen_seo,
+              Entry_Keywords: data.palabras_clave
+            }
+          })));
         case 7:
           _context.p = 7;
           _t = _context.v;
