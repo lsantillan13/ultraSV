@@ -26,8 +26,6 @@ var isCloudinary = function isCloudinary() {
   var url = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
   return /res\.cloudinary\.com/i.test(url) && !String(url).startsWith('data:') && String(url).length < 1000;
 };
-
-// FIX: fecha sin milisegundos para Google
 var cleanDate = function cleanDate(d) {
   try {
     return new Date(d).toISOString().split('.')[0] + '+00:00';
@@ -77,6 +75,8 @@ function _getPosts() {
 router.get('/robots.txt', function (req, res) {
   res.type('text/plain').send("User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\nDisallow: /api/auth/\n\nSitemap: ".concat(SITE_URL, "/sitemap.xml\nSitemap: ").concat(SITE_URL, "/sitemap-news.xml"));
 });
+
+// SITEMAP PRINCIPAL - MINIMALISTA VALIDO (SIN IMAGE)
 var sitemapHandler = /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(req, res) {
     var posts, urls;
@@ -87,7 +87,8 @@ var sitemapHandler = /*#__PURE__*/function () {
           return getPosts(800, {
             Entry_Slug: {
               $exists: true,
-              $ne: ""
+              $ne: "",
+              $type: "string"
             },
             createdAt: {
               $exists: true
@@ -95,10 +96,13 @@ var sitemapHandler = /*#__PURE__*/function () {
           });
         case 1:
           posts = _context.v;
+          posts = posts.filter(function (p) {
+            return p.Entry_Slug && !p.Entry_Slug.includes(' ');
+          });
           posts = posts.slice(0, 500);
           urls = posts.map(function (p) {
-            var cat = esc(p.Entry_Category || 'noticia');
-            var slug = esc(p.Entry_Slug);
+            var cat = esc((p.Entry_Category || 'noticia').toLowerCase().trim());
+            var slug = esc(p.Entry_Slug.trim());
             var lastmod = cleanDate(p.updatedAt || p.createdAt);
             return " <url><loc>".concat(SITE_URL, "/").concat(cat, "/").concat(slug, "</loc><lastmod>").concat(lastmod, "</lastmod></url>");
           }).join('\n');
@@ -150,7 +154,7 @@ var newsHandler = /*#__PURE__*/function () {
   };
 }();
 router.get(['/sitemap.xml', '/api/v2/sitemap.xml'], sitemapHandler);
-router.get(['/sitemap-news.xml', '/api/v2/sitemap-news.xml'], newsHandler);
+router.get(['/sitemap-news.xml', '/api/v2/sitemap-news.xml', '/api/v2/sitemap-news'], newsHandler);
 router.get(['/feed.xml', '/api/v2/feed.xml'], /*#__PURE__*/function () {
   var _ref3 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(req, res) {
     var posts, items;

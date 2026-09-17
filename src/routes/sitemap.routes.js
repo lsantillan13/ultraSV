@@ -11,13 +11,15 @@ function esc(str = '') {
 function safeCdata(str = '') {
   return String(str?? '').replace(/]]>/g, ']]]]><![CDATA[>');
 }
+
 const isCloudinary = (url = '') => /res\.cloudinary\.com/i.test(url) &&!String(url).startsWith('data:') && String(url).length < 1000;
 
-// FIX: fecha sin milisegundos para Google
 const cleanDate = (d) => {
   try {
     return new Date(d).toISOString().split('.')[0] + '+00:00';
-  } catch { return new Date().toISOString().split('.')[0] + '+00:00'; }
+  } catch {
+    return new Date().toISOString().split('.')[0] + '+00:00';
+  }
 };
 
 async function getPosts(limit = 500, filter = {}) {
@@ -42,15 +44,19 @@ Sitemap: ${SITE_URL}/sitemap.xml
 Sitemap: ${SITE_URL}/sitemap-news.xml`);
 });
 
+// SITEMAP PRINCIPAL - MINIMALISTA VALIDO (SIN IMAGE)
 const sitemapHandler = async (req, res) => {
-  let posts = await getPosts(800, { Entry_Slug: { $exists: true, $ne: "" }, createdAt: { $exists: true } });
+  let posts = await getPosts(800, { Entry_Slug: { $exists: true, $ne: "", $type: "string" }, createdAt: { $exists: true } });
+  posts = posts.filter(p => p.Entry_Slug &&!p.Entry_Slug.includes(' '));
   posts = posts.slice(0, 500);
+
   const urls = posts.map(p => {
-    const cat = esc(p.Entry_Category || 'noticia');
-    const slug = esc(p.Entry_Slug);
+    const cat = esc((p.Entry_Category || 'noticia').toLowerCase().trim());
+    const slug = esc(p.Entry_Slug.trim());
     const lastmod = cleanDate(p.updatedAt || p.createdAt);
     return ` <url><loc>${SITE_URL}/${cat}/${slug}</loc><lastmod>${lastmod}</lastmod></url>`;
   }).join('\n');
+
   res.header('Content-Type', 'application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>${SITE_URL}/</loc><changefreq>always</changefreq><priority>1.0</priority></url>
@@ -76,7 +82,7 @@ ${urls}
 };
 
 router.get(['/sitemap.xml', '/api/v2/sitemap.xml'], sitemapHandler);
-router.get(['/sitemap-news.xml', '/api/v2/sitemap-news.xml'], newsHandler);
+router.get(['/sitemap-news.xml', '/api/v2/sitemap-news.xml', '/api/v2/sitemap-news'], newsHandler);
 
 router.get(['/feed.xml', '/api/v2/feed.xml'], async (req, res) => {
   let posts = await getPosts(100, { Entry_Slug: { $exists: true, $ne: "" } });
