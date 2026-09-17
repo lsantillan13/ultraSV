@@ -5,7 +5,6 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports["default"] = void 0;
 var _express = _interopRequireDefault(require("express"));
-var _mongoose = _interopRequireDefault(require("mongoose"));
 var _initialSetup = require("./libs/initialSetup.js");
 var _morgan = _interopRequireDefault(require("morgan"));
 var _postRoutes = _interopRequireDefault(require("./routes/post.routes.js"));
@@ -34,10 +33,15 @@ function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { 
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
 var app = (0, _express["default"])();
-var whitelist = ['https://voxdiario.com', 'https://www.voxdiario.com', 'https://voxdiario.com.ar', 'https://www.voxdiario.com.ar', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:8080', 'http://192.168.100.11:3000'];
+var whitelist = ['https://voxdiario.com', 'https://www.voxdiario.com', 'https://voxdiario.com.ar', 'https://www.voxdiario.com.ar', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173', 'http://localhost:8080', 'http://192.168.100.11:3000', 'http://192.168.100.11:5173', 'http://192.168.100.11:8080'];
 var corsOptions = {
   origin: function origin(_origin, cb) {
-    cb(null, true);
+    // Postman, curl, server-to-server, Worker -> sin Origin
+    if (!_origin) return cb(null, true);
+    if (whitelist.includes(_origin)) return cb(null, true);
+    // En dev dejamos pasar todo para no bloquear Vite
+    if (process.env.NODE_ENV !== 'production') return cb(null, true);
+    return cb(null, true); // por ahora open, si querés bloquear: cb(new Error('Not allowed by CORS'))
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -178,7 +182,7 @@ app.get('/health', function (req, res) {
   });
 });
 app.get('/', function (req, res) {
-  return res.send("<h1>VoxDiario API v2 Running</h1><ul><li><a href=\"/health\">Health</a></li><li><a href=\"/sitemap.xml\">/sitemap.xml</a></li><li><a href=\"/sitemap-news.xml\">/sitemap-news.xml</a></li><li><a href=\"/api/v2/sitemap-news\">/api/v2/sitemap-news FIX</a></li><li><a href=\"/api/v2/entradas\">/api/v2/entradas</a></li></ul>");
+  return res.send("<h1>VoxDiario API v2 Running</h1><ul><li><a href=\"/health\">Health</a></li><li><a href=\"/sitemap.xml\">/sitemap.xml</a></li><li><a href=\"/sitemap-news.xml\">/sitemap-news.xml</a></li></ul>");
 });
 app.use('/', _sitemapRoutes["default"]);
 app.use('/api/posts', _postRoutes["default"]);
@@ -196,61 +200,6 @@ app.use('/api/v2/tags', _tagsRoutes["default"]);
 app.use('/api/v2/tts', _ttsRoutes["default"]);
 app.use('/api/v2/categorias', _categoriasRoutes["default"]);
 app.use('/api/v2/boletin', _boletinRoutes["default"]);
-app.use('/api/boletin', _boletinRoutes["default"]);
-
-// --- FIX: REDIRECT 301 DE IDs VIEJOS A SLUG (VITE) ---
-app.get('/:category/:id', /*#__PURE__*/function () {
-  var _ref3 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(req, res, next) {
-    var _req$params, category, id, reserved, coll, post, _t3;
-    return _regenerator().w(function (_context3) {
-      while (1) switch (_context3.p = _context3.n) {
-        case 0:
-          _req$params = req.params, category = _req$params.category, id = _req$params.id;
-          if (/^[a-f\d]{24}$/i.test(id)) {
-            _context3.n = 1;
-            break;
-          }
-          return _context3.a(2, next());
-        case 1:
-          reserved = ['api', 'public', 'health', 'sitemap.xml', 'sitemap-news.xml', 'feed.xml', 'robots.txt'];
-          if (!reserved.includes(category)) {
-            _context3.n = 2;
-            break;
-          }
-          return _context3.a(2, next());
-        case 2:
-          _context3.p = 2;
-          if (!(_mongoose["default"].connection.readyState !== 1)) {
-            _context3.n = 3;
-            break;
-          }
-          return _context3.a(2, next());
-        case 3:
-          coll = _mongoose["default"].connection.db.collection('posts');
-          _context3.n = 4;
-          return coll.findOne({
-            _id: new _mongoose["default"].Types.ObjectId(id)
-          });
-        case 4:
-          post = _context3.v;
-          if (!(post !== null && post !== void 0 && post.Entry_Slug)) {
-            _context3.n = 5;
-            break;
-          }
-          return _context3.a(2, res.redirect(301, "https://www.voxdiario.com/".concat(post.Entry_Category || category, "/").concat(post.Entry_Slug)));
-        case 5:
-          return _context3.a(2, next());
-        case 6:
-          _context3.p = 6;
-          _t3 = _context3.v;
-          return _context3.a(2, next());
-      }
-    }, _callee3, null, [[2, 6]]);
-  }));
-  return function (_x5, _x6, _x7) {
-    return _ref3.apply(this, arguments);
-  };
-}());
 app.use(function (req, res) {
   return res.status(404).json({
     status: 404,
