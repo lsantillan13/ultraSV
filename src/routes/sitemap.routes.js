@@ -44,22 +44,15 @@ Sitemap: ${SITE_URL}/sitemap-news.xml`);
 
 const sitemapHandler = async (req, res) => {
   let posts = await getPosts(800, { Entry_Slug: { $exists: true, $ne: "" }, createdAt: { $exists: true } });
-  // solo cloudinary válido
-  posts = posts.filter(p => p.Entry_Featured_Image && isCloudinary(p.Entry_Featured_Image));
   posts = posts.slice(0, 500);
-
   const urls = posts.map(p => {
     const cat = esc(p.Entry_Category || 'noticia');
     const slug = esc(p.Entry_Slug);
     const lastmod = cleanDate(p.updatedAt || p.createdAt);
-    // optimizamos imagen para sitemap
-    const rawImg = p.Entry_Featured_Image.replace(/\/image\/upload\//, '/image/upload/f_auto,q_auto/');
-    const img = `<image:image><image:loc>${esc(rawImg)}</image:loc></image:image>`;
-    return ` <url><loc>${SITE_URL}/${cat}/${slug}</loc><lastmod>${lastmod}</lastmod>${img}</url>`;
+    return ` <url><loc>${SITE_URL}/${cat}/${slug}</loc><lastmod>${lastmod}</lastmod></url>`;
   }).join('\n');
-
   res.header('Content-Type', 'application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.0">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>${SITE_URL}/</loc><changefreq>always</changefreq><priority>1.0</priority></url>
 ${urls}
 </urlset>`);
