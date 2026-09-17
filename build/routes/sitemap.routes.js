@@ -24,7 +24,16 @@ function safeCdata() {
 }
 var isCloudinary = function isCloudinary() {
   var url = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
-  return /res\.cloudinary\.com/i.test(url);
+  return /res\.cloudinary\.com/i.test(url) && !String(url).startsWith('data:') && String(url).length < 1000;
+};
+
+// FIX: fecha sin milisegundos para Google
+var cleanDate = function cleanDate(d) {
+  try {
+    return new Date(d).toISOString().split('.')[0] + '+00:00';
+  } catch (_unused) {
+    return new Date().toISOString().split('.')[0] + '+00:00';
+  }
 };
 function getPosts() {
   return _getPosts.apply(this, arguments);
@@ -86,6 +95,7 @@ var sitemapHandler = /*#__PURE__*/function () {
           });
         case 1:
           posts = _context.v;
+          // solo cloudinary válido
           posts = posts.filter(function (p) {
             return p.Entry_Featured_Image && isCloudinary(p.Entry_Featured_Image);
           });
@@ -93,8 +103,10 @@ var sitemapHandler = /*#__PURE__*/function () {
           urls = posts.map(function (p) {
             var cat = esc(p.Entry_Category || 'noticia');
             var slug = esc(p.Entry_Slug);
-            var lastmod = new Date(p.updatedAt || p.createdAt).toISOString();
-            var img = "<image:image><image:loc>".concat(esc(p.Entry_Featured_Image), "</image:loc></image:image>");
+            var lastmod = cleanDate(p.updatedAt || p.createdAt);
+            // optimizamos imagen para sitemap
+            var rawImg = p.Entry_Featured_Image.replace(/\/image\/upload\//, '/image/upload/f_auto,q_auto/');
+            var img = "<image:image><image:loc>".concat(esc(rawImg), "</image:loc></image:image>");
             return " <url><loc>".concat(SITE_URL, "/").concat(cat, "/").concat(slug, "</loc><lastmod>").concat(lastmod, "</lastmod>").concat(img, "</url>");
           }).join('\n');
           res.header('Content-Type', 'application/xml').send("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" xmlns:image=\"http://www.google.com/schemas/sitemap-image/1.0\">\n  <url><loc>".concat(SITE_URL, "/</loc><changefreq>always</changefreq><priority>1.0</priority></url>\n").concat(urls, "\n</urlset>"));
@@ -130,7 +142,9 @@ var newsHandler = /*#__PURE__*/function () {
             return isCloudinary(p.Entry_Featured_Image || '');
           });
           urls = posts.map(function (p) {
-            return " <url><loc>".concat(SITE_URL, "/").concat(esc(p.Entry_Category), "/").concat(esc(p.Entry_Slug), "</loc><news:news><news:publication><news:name>Vox Diario</news:name><news:language>es</news:language></news:publication><news:publication_date>").concat(new Date(p.createdAt).toISOString(), "</news:publication_date><news:title><![CDATA[").concat(safeCdata(p.Entry_Title), "]]></news:title></news:news></url>");
+            var cat = esc(p.Entry_Category || 'noticia');
+            var slug = esc(p.Entry_Slug);
+            return " <url><loc>".concat(SITE_URL, "/").concat(cat, "/").concat(slug, "</loc><news:news><news:publication><news:name>Vox Diario</news:name><news:language>es</news:language></news:publication><news:publication_date>").concat(cleanDate(p.createdAt), "</news:publication_date><news:title><![CDATA[").concat(safeCdata(p.Entry_Title), "]]></news:title></news:news></url>");
           }).join('\n');
           res.header('Content-Type', 'application/xml').send("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" xmlns:news=\"http://www.google.com/schemas/sitemap-news/0.9\">\n".concat(urls, "\n</urlset>"));
         case 2:
@@ -143,7 +157,7 @@ var newsHandler = /*#__PURE__*/function () {
   };
 }();
 router.get(['/sitemap.xml', '/api/v2/sitemap.xml'], sitemapHandler);
-router.get(['/sitemap-news.xml', '/api/v2/sitemap-news', '/api/v2/sitemap-news.xml'], newsHandler);
+router.get(['/sitemap-news.xml', '/api/v2/sitemap-news.xml'], newsHandler);
 router.get(['/feed.xml', '/api/v2/feed.xml'], /*#__PURE__*/function () {
   var _ref3 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(req, res) {
     var posts, items;
