@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { createRoles } from './libs/initialSetup.js';
 import morgan from 'morgan';
 import postRoutes from './routes/post.routes.js';
@@ -69,7 +70,7 @@ app.use(async (req, res, next) => {
 
 app.use('/public', express.static('public'));
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'ultraserver', uptime: process.uptime(), timestamp: Date.now() }));
-app.get('/', (req, res) => res.send(`<h1>VoxDiario API v2 Running</h1><ul><li><a href="/health">Health</a></li><li><a href="/api/v2/entradas">/api/v2/entradas</a></li></ul>`));
+app.get('/', (req, res) => res.send(`<h1>VoxDiario API v2 Running</h1><ul><li><a href="/health">Health</a></li><li><a href="/sitemap.xml">/sitemap.xml</a></li><li><a href="/sitemap-news.xml">/sitemap-news.xml</a></li><li><a href="/api/v2/sitemap-news">/api/v2/sitemap-news FIX</a></li><li><a href="/api/v2/entradas">/api/v2/entradas</a></li></ul>`));
 app.use('/', sitemapRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/content', contentRoutes);
@@ -87,6 +88,26 @@ app.use('/api/v2/tts', ttsRouter);
 app.use('/api/v2/categorias', categoriasRouter);
 app.use('/api/v2/boletin', boletinRoutes);
 app.use('/api/boletin', boletinRoutes);
+
+// --- FIX: REDIRECT 301 DE IDs VIEJOS A SLUG (VITE) ---
+app.get('/:category/:id', async (req, res, next) => {
+  const { category, id } = req.params;
+  if (!/^[a-f\d]{24}$/i.test(id)) return next();
+  const reserved = ['api', 'public', 'health', 'sitemap.xml', 'sitemap-news.xml', 'feed.xml', 'robots.txt'];
+  if (reserved.includes(category)) return next();
+  try {
+    if (mongoose.connection.readyState !== 1) return next();
+    const coll = mongoose.connection.db.collection('posts');
+    const post = await coll.findOne({ _id: new mongoose.Types.ObjectId(id) });
+    if (post?.Entry_Slug) {
+      return res.redirect(301, `https://www.voxdiario.com/${post.Entry_Category || category}/${post.Entry_Slug}`);
+    }
+    return next();
+  } catch (e) {
+    return next();
+  }
+});
+
 app.use((req, res) => res.status(404).json({ status: 404, message: 'Ruta no encontrada', path: req.originalUrl }));
 app.use((err, req, res, next) => res.status(err.status || 500).json({ status: err.status || 500, message: err.message || 'Error interno' }));
 export default app;
