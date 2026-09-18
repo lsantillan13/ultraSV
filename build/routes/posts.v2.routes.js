@@ -39,10 +39,6 @@ var slugify = function slugify() {
   var text = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
   return text.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 110);
 };
-
-// ==========================
-// 1. LISTADO
-// ==========================
 router.get('/', cacheV2, /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(req, res) {
     var Post, page, limit, search, skip, filter, regex, _yield$Promise$all, _yield$Promise$all2, posts, total, _t;
@@ -56,6 +52,8 @@ router.get('/', cacheV2, /*#__PURE__*/function () {
           search = req.query.search || req.query.q || '';
           skip = (page - 1) * limit;
           filter = {};
+          if (req.query.portada === 'true') filter.Entry_Is_Portada = true;
+          if (req.query.destacada === 'true') filter.destacada = true;
           if (search && search.length >= 2) {
             regex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
             filter.$or = [{
@@ -67,9 +65,11 @@ router.get('/', cacheV2, /*#__PURE__*/function () {
             }, {
               Entry_Category: regex
             }];
+            if (filter.Entry_Is_Portada) delete filter.$or; // si es portada=true, prioriza eso
           }
           _context.n = 1;
           return Promise.all([Post.find(filter).sort({
+            updatedAt: -1,
             createdAt: -1
           }).skip(skip).limit(limit).lean(), Post.countDocuments(filter)]);
         case 1:
@@ -298,9 +298,11 @@ router.get('/carousel', cacheV2, /*#__PURE__*/function () {
     return _ref4.apply(this, arguments);
   };
 }());
+
+// FIX: ahora portada devuelve 5 como carousel para el admin
 router.get('/portada', cacheV2, /*#__PURE__*/function () {
   var _ref5 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(req, res) {
-    var Post, post, _t5;
+    var Post, main, sides, _main2, excludeIds, auto, all, _t5;
     return _regenerator().w(function (_context5) {
       while (1) switch (_context5.p = _context5.n) {
         case 0:
@@ -313,8 +315,8 @@ router.get('/portada', cacheV2, /*#__PURE__*/function () {
             carouselMainAt: -1
           }).lean();
         case 1:
-          post = _context5.v;
-          if (post) {
+          main = _context5.v;
+          if (main) {
             _context5.n = 3;
             break;
           }
@@ -325,36 +327,69 @@ router.get('/portada', cacheV2, /*#__PURE__*/function () {
             Entry_Portada_At: -1
           }).lean();
         case 2:
-          post = _context5.v;
+          main = _context5.v;
         case 3:
-          if (post) {
-            _context5.n = 5;
+          _context5.n = 4;
+          return Post.find({
+            carouselSide: true
+          }).sort({
+            carouselOrder: 1,
+            carouselSideAt: -1
+          }).limit(4).lean();
+        case 4:
+          sides = _context5.v;
+          if (main) {
+            _context5.n = 6;
             break;
           }
-          _context5.n = 4;
-          return Post.findOne({}).sort({
+          _context5.n = 5;
+          return Post.find({}).sort({
             createdAt: -1
-          }).lean();
-        case 4:
-          post = _context5.v;
+          }).limit(1).lean().then(function (r) {
+            return r[0];
+          });
         case 5:
+          main = _context5.v;
+        case 6:
+          if (!(sides.length < 4)) {
+            _context5.n = 8;
+            break;
+          }
+          excludeIds = [(_main2 = main) === null || _main2 === void 0 ? void 0 : _main2._id].concat(_toConsumableArray(sides.map(function (s) {
+            return s._id;
+          }))).filter(Boolean);
+          _context5.n = 7;
+          return Post.find({
+            _id: {
+              $nin: excludeIds
+            }
+          }).sort({
+            createdAt: -1
+          }).limit(4 - sides.length).lean();
+        case 7:
+          auto = _context5.v;
+          sides = [].concat(_toConsumableArray(sides), _toConsumableArray(auto));
+        case 8:
+          all = [main].concat(_toConsumableArray(sides)).filter(Boolean);
           res.json({
-            data: post,
-            post: post,
+            data: all,
+            posts: all,
+            main: main,
+            sides: sides,
             version: 'v2'
           });
-          _context5.n = 7;
+          _context5.n = 10;
           break;
-        case 6:
-          _context5.p = 6;
+        case 9:
+          _context5.p = 9;
           _t5 = _context5.v;
           res.status(500).json({
             message: _t5.message
           });
-        case 7:
+        case 10:
           return _context5.a(2);
       }
-    }, _callee5, null, [[0, 6]]);
+    }, _callee5, null, [[0, 9]]);
   }));
   return function (_x9, _x0) {
     return _ref5.apply(this, arguments);
@@ -370,9 +405,9 @@ router.get('/destacada', cacheV2, /*#__PURE__*/function () {
           Post = getPostModel();
           _context6.n = 1;
           return Post.findOne({
-            carouselMain: true
+            destacada: true
           }).sort({
-            carouselMainAt: -1
+            destacadaAt: -1
           }).lean();
         case 1:
           post = _context6.v;
@@ -381,41 +416,28 @@ router.get('/destacada', cacheV2, /*#__PURE__*/function () {
             break;
           }
           _context6.n = 2;
-          return Post.findOne({
-            Entry_Is_Portada: true
-          }).sort({
-            Entry_Portada_At: -1
+          return Post.findOne({}).sort({
+            createdAt: -1
           }).lean();
         case 2:
           post = _context6.v;
         case 3:
-          if (post) {
-            _context6.n = 5;
-            break;
-          }
-          _context6.n = 4;
-          return Post.findOne({}).sort({
-            createdAt: -1
-          }).lean();
-        case 4:
-          post = _context6.v;
-        case 5:
           res.json({
             data: post,
             version: 'v2'
           });
-          _context6.n = 7;
+          _context6.n = 5;
           break;
-        case 6:
-          _context6.p = 6;
+        case 4:
+          _context6.p = 4;
           _t6 = _context6.v;
           res.status(500).json({
             message: _t6.message
           });
-        case 7:
+        case 5:
           return _context6.a(2);
       }
-    }, _callee6, null, [[0, 6]]);
+    }, _callee6, null, [[0, 4]]);
   }));
   return function (_x1, _x10) {
     return _ref6.apply(this, arguments);
@@ -604,6 +626,7 @@ router.patch('/:id/portada', /*#__PURE__*/function () {
         case 0:
           _context1.p = 0;
           Post = getPostModel();
+          console.log("[PATCH portada] ".concat(req.params.id, " active=").concat(req.body.active));
           if (!req.body.active) {
             _context1.n = 3;
             break;
@@ -621,7 +644,8 @@ router.patch('/:id/portada', /*#__PURE__*/function () {
             Entry_Is_Portada: true,
             Entry_Portada_At: new Date(),
             carouselMain: true,
-            carouselMainAt: new Date()
+            carouselMainAt: new Date(),
+            portada: true
           });
         case 2:
           _context1.n = 4;
@@ -630,7 +654,8 @@ router.patch('/:id/portada', /*#__PURE__*/function () {
           _context1.n = 4;
           return Post.findByIdAndUpdate(req.params.id, {
             Entry_Is_Portada: false,
-            carouselMain: false
+            carouselMain: false,
+            portada: false
           });
         case 4:
           res.json({
@@ -668,14 +693,17 @@ router.patch('/:id/carousel-main', /*#__PURE__*/function () {
           _context10.n = 1;
           return Post.updateMany({}, {
             $set: {
-              carouselMain: false
+              carouselMain: false,
+              Entry_Is_Portada: false
             }
           });
         case 1:
           _context10.n = 2;
           return Post.findByIdAndUpdate(req.params.id, {
             carouselMain: true,
-            carouselMainAt: new Date()
+            carouselMainAt: new Date(),
+            Entry_Is_Portada: true,
+            Entry_Portada_At: new Date()
           });
         case 2:
           _context10.n = 4;
@@ -683,7 +711,8 @@ router.patch('/:id/carousel-main', /*#__PURE__*/function () {
         case 3:
           _context10.n = 4;
           return Post.findByIdAndUpdate(req.params.id, {
-            carouselMain: false
+            carouselMain: false,
+            Entry_Is_Portada: false
           });
         case 4:
           res.json({
@@ -718,7 +747,9 @@ router.patch('/:id/carousel-side', /*#__PURE__*/function () {
             carouselSide: !!req.body.active
           };
           if (typeof req.body.order === 'number') update.carouselOrder = req.body.order;
-          if (req.body.active) update.carouselSideAt = new Date();
+          if (req.body.active) update.carouselSideAt = new Date();else {
+            update.carouselOrder = null;
+          }
           _context11.n = 1;
           return Post.findByIdAndUpdate(req.params.id, update);
         case 1:
@@ -821,8 +852,6 @@ router.get('/slug/:slug', cacheV2, /*#__PURE__*/function () {
     return _ref13.apply(this, arguments);
   };
 }());
-
-// ===== FIX DEFINITIVO: PRESERVA -mu2t10ll =====
 router.put('/:id', /*#__PURE__*/function () {
   var _ref14 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14(req, res) {
     var Post, existing, body, oldSlug, parts, last, hasShortId, base, updated, _t14;
@@ -843,7 +872,7 @@ router.put('/:id', /*#__PURE__*/function () {
             message: 'No encontrado'
           }));
         case 2:
-          body = _objectSpread({}, req.body); // Detecta el shortId viejo: mu2t10ll
+          body = _objectSpread({}, req.body);
           oldSlug = existing.Entry_Slug || '';
           parts = oldSlug.split('-');
           last = parts[parts.length - 1] || '';
@@ -856,13 +885,10 @@ router.put('/:id', /*#__PURE__*/function () {
           } else {
             base = slugify(existing.Entry_Title);
           }
-
-          // Saca cualquier shortId que haya quedado en el base para no duplicar
           base = base.replace(/-[a-z0-9]{6,10}$/, '');
           if (hasShortId) {
-            body.Entry_Slug = "".concat(base, "-").concat(last); // respeta el mu2t10ll viejo
+            body.Entry_Slug = "".concat(base, "-").concat(last);
           } else {
-            // si no tenia, le crea uno con los ultimos 6 del ObjectId
             body.Entry_Slug = "".concat(base, "-").concat(req.params.id.slice(-6).toLowerCase());
           }
           _context14.n = 3;
