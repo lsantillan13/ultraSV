@@ -852,23 +852,85 @@ router.get('/slug/:slug', cacheV2, /*#__PURE__*/function () {
     return _ref13.apply(this, arguments);
   };
 }());
-router.put('/:id', /*#__PURE__*/function () {
+router.post('/', /*#__PURE__*/function () {
   var _ref14 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14(req, res) {
-    var Post, existing, body, oldSlug, parts, last, hasShortId, base, updated, _t14;
+    var Post, b, base, shortId, doc, _t14;
     return _regenerator().w(function (_context14) {
       while (1) switch (_context14.p = _context14.n) {
         case 0:
           _context14.p = 0;
           Post = getPostModel();
-          _context14.n = 1;
-          return Post.findById(req.params.id).lean();
-        case 1:
-          existing = _context14.v;
-          if (existing) {
-            _context14.n = 2;
+          b = req.body;
+          if (!(!b.Entry_Title || !b.Entry_Featured_Image)) {
+            _context14.n = 1;
             break;
           }
-          return _context14.a(2, res.status(404).json({
+          return _context14.a(2, res.status(400).json({
+            message: 'Falta título o imagen'
+          }));
+        case 1:
+          base = slugify(b.Entry_Slug || b.Entry_Title).replace(/-[a-z0-9]{6,10}$/, '');
+          shortId = new _mongoose["default"].Types.ObjectId().toString().slice(-6).toLowerCase();
+          _context14.n = 2;
+          return Post.create({
+            Entry_Title: b.Entry_Title,
+            Entry_Slug: "".concat(base, "-").concat(shortId),
+            Entry_Resume: b.Entry_Resume || '',
+            Entry_Body: b.Entry_Body || b.Entry_Content || '',
+            Entry_Content: b.Entry_Content || b.Entry_Body || '',
+            Entry_Featured_Image: b.Entry_Featured_Image,
+            Entry_Category: b.Entry_Category || 'ciudad',
+            Entry_Category_Label: b.Entry_Category_Label || b.Entry_Category || 'Ciudad',
+            Entry_Tags: b.Entry_Tags || [],
+            Tags: b.Tags || (b.Entry_Tags || []).join(','),
+            ogImage: b.ogImage || b.Entry_Featured_Image,
+            portada: !!b.portada,
+            destacada: !!b.destacada,
+            Entry_Is_Portada: !!b.portada,
+            carouselMain: !!b.portada
+          });
+        case 2:
+          doc = _context14.v;
+          res.status(201).json({
+            data: doc,
+            post: doc,
+            ok: true
+          });
+          _context14.n = 4;
+          break;
+        case 3:
+          _context14.p = 3;
+          _t14 = _context14.v;
+          console.error('[POST v2 entradas]', _t14);
+          res.status(500).json({
+            message: _t14.message
+          });
+        case 4:
+          return _context14.a(2);
+      }
+    }, _callee14, null, [[0, 3]]);
+  }));
+  return function (_x29, _x30) {
+    return _ref14.apply(this, arguments);
+  };
+}());
+router.put('/:id', /*#__PURE__*/function () {
+  var _ref15 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee15(req, res) {
+    var Post, existing, body, oldSlug, parts, last, hasShortId, base, updated, _t15;
+    return _regenerator().w(function (_context15) {
+      while (1) switch (_context15.p = _context15.n) {
+        case 0:
+          _context15.p = 0;
+          Post = getPostModel();
+          _context15.n = 1;
+          return Post.findById(req.params.id).lean();
+        case 1:
+          existing = _context15.v;
+          if (existing) {
+            _context15.n = 2;
+            break;
+          }
+          return _context15.a(2, res.status(404).json({
             message: 'No encontrado'
           }));
         case 2:
@@ -891,67 +953,67 @@ router.put('/:id', /*#__PURE__*/function () {
           } else {
             body.Entry_Slug = "".concat(base, "-").concat(req.params.id.slice(-6).toLowerCase());
           }
-          _context14.n = 3;
+          _context15.n = 3;
           return Post.findByIdAndUpdate(req.params.id, body, {
             "new": true
           });
         case 3:
-          updated = _context14.v;
+          updated = _context15.v;
           res.json({
             data: updated,
             post: updated
           });
-          _context14.n = 5;
+          _context15.n = 5;
           break;
         case 4:
-          _context14.p = 4;
-          _t14 = _context14.v;
-          console.error('[PUT v2]', _t14);
+          _context15.p = 4;
+          _t15 = _context15.v;
+          console.error('[PUT v2]', _t15);
           res.status(500).json({
-            message: _t14.message
+            message: _t15.message
           });
         case 5:
-          return _context14.a(2);
+          return _context15.a(2);
       }
-    }, _callee14, null, [[0, 4]]);
+    }, _callee15, null, [[0, 4]]);
   }));
-  return function (_x29, _x30) {
-    return _ref14.apply(this, arguments);
+  return function (_x31, _x32) {
+    return _ref15.apply(this, arguments);
   };
 }());
 router["delete"]('/:id', /*#__PURE__*/function () {
-  var _ref15 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee15(req, res) {
-    var Post, id, deleted, _t15, _t16;
-    return _regenerator().w(function (_context15) {
-      while (1) switch (_context15.p = _context15.n) {
+  var _ref16 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee16(req, res) {
+    var Post, id, deleted, _t16, _t17;
+    return _regenerator().w(function (_context16) {
+      while (1) switch (_context16.p = _context16.n) {
         case 0:
-          _context15.p = 0;
+          _context16.p = 0;
           Post = getPostModel();
           id = req.params.id;
           if (!_mongoose["default"].Types.ObjectId.isValid(id)) {
-            _context15.n = 2;
+            _context16.n = 2;
             break;
           }
-          _context15.n = 1;
+          _context16.n = 1;
           return Post.findByIdAndDelete(id);
         case 1:
-          _t15 = _context15.v;
-          _context15.n = 4;
+          _t16 = _context16.v;
+          _context16.n = 4;
           break;
         case 2:
-          _context15.n = 3;
+          _context16.n = 3;
           return Post.findOneAndDelete({
             Entry_Slug: id
           });
         case 3:
-          _t15 = _context15.v;
+          _t16 = _context16.v;
         case 4:
-          deleted = _t15;
+          deleted = _t16;
           if (deleted) {
-            _context15.n = 5;
+            _context16.n = 5;
             break;
           }
-          return _context15.a(2, res.status(404).json({
+          return _context16.a(2, res.status(404).json({
             status: 404,
             message: 'ID no existe',
             path: req.originalUrl
@@ -962,83 +1024,83 @@ router["delete"]('/:id', /*#__PURE__*/function () {
             message: 'Borrado V2',
             id: id
           });
-          _context15.n = 7;
+          _context16.n = 7;
           break;
         case 6:
-          _context15.p = 6;
-          _t16 = _context15.v;
+          _context16.p = 6;
+          _t17 = _context16.v;
           res.status(500).json({
-            message: _t16.message
+            message: _t17.message
           });
         case 7:
-          return _context15.a(2);
+          return _context16.a(2);
       }
-    }, _callee15, null, [[0, 6]]);
+    }, _callee16, null, [[0, 6]]);
   }));
-  return function (_x31, _x32) {
-    return _ref15.apply(this, arguments);
+  return function (_x33, _x34) {
+    return _ref16.apply(this, arguments);
   };
 }());
 router.get('/:id', /*#__PURE__*/function () {
-  var _ref16 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee16(req, res) {
-    var id, Post, post, _t17, _t18;
-    return _regenerator().w(function (_context16) {
-      while (1) switch (_context16.p = _context16.n) {
+  var _ref17 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee17(req, res) {
+    var id, Post, post, _t18, _t19;
+    return _regenerator().w(function (_context17) {
+      while (1) switch (_context17.p = _context17.n) {
         case 0:
-          _context16.p = 0;
+          _context17.p = 0;
           id = req.params.id;
           if (!['search', 'last', 'destacada', 'destacadas', 'portada', 'carousel', 'ultimas', 'mas-leidas', 'slugs', 'slug'].includes(id)) {
-            _context16.n = 1;
+            _context17.n = 1;
             break;
           }
-          return _context16.a(2, res.status(404).json({
+          return _context17.a(2, res.status(404).json({
             message: 'Ruta no encontrada'
           }));
         case 1:
           Post = getPostModel();
           if (!_mongoose["default"].Types.ObjectId.isValid(id)) {
-            _context16.n = 3;
+            _context17.n = 3;
             break;
           }
-          _context16.n = 2;
+          _context17.n = 2;
           return Post.findById(id).lean();
         case 2:
-          _t17 = _context16.v;
-          _context16.n = 4;
+          _t18 = _context17.v;
+          _context17.n = 4;
           break;
         case 3:
-          _t17 = null;
+          _t18 = null;
         case 4:
-          post = _t17;
+          post = _t18;
           if (post) {
-            _context16.n = 6;
+            _context17.n = 6;
             break;
           }
-          _context16.n = 5;
+          _context17.n = 5;
           return Post.findOne({
             Entry_Slug: id
           }).lean();
         case 5:
-          post = _context16.v;
+          post = _context17.v;
         case 6:
           if (!(!post && /^[a-z0-9]{6,10}$/.test(id))) {
-            _context16.n = 8;
+            _context17.n = 8;
             break;
           }
-          _context16.n = 7;
+          _context17.n = 7;
           return Post.findOne({
             Entry_Slug: {
               $regex: "-".concat(id, "$")
             }
           }).lean();
         case 7:
-          post = _context16.v;
+          post = _context17.v;
         case 8:
           if (post) {
-            _context16.n = 9;
+            _context17.n = 9;
             break;
           }
-          return _context16.a(2, res.status(404).json({
+          return _context17.a(2, res.status(404).json({
             message: 'No encontrado'
           }));
         case 9:
@@ -1046,21 +1108,21 @@ router.get('/:id', /*#__PURE__*/function () {
             data: post,
             post: post
           });
-          _context16.n = 11;
+          _context17.n = 11;
           break;
         case 10:
-          _context16.p = 10;
-          _t18 = _context16.v;
+          _context17.p = 10;
+          _t19 = _context17.v;
           res.status(500).json({
-            message: _t18.message
+            message: _t19.message
           });
         case 11:
-          return _context16.a(2);
+          return _context17.a(2);
       }
-    }, _callee16, null, [[0, 10]]);
+    }, _callee17, null, [[0, 10]]);
   }));
-  return function (_x33, _x34) {
-    return _ref16.apply(this, arguments);
+  return function (_x35, _x36) {
+    return _ref17.apply(this, arguments);
   };
 }());
 var _default = exports["default"] = router;
