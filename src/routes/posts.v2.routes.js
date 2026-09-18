@@ -202,35 +202,36 @@ router.post('/', async (req, res) => {
   try {
     const Post = getPostModel();
     const b = req.body;
-    
-    if (!b.Entry_Title || !b.Entry_Featured_Image) {
-      return res.status(400).json({ message: 'Falta título o imagen' });
-    }
+    if (!b.Entry_Title || !b.Entry_Featured_Image) return res.status(400).json({ message: 'Falta título o imagen' });
 
     const base = slugify(b.Entry_Slug || b.Entry_Title).replace(/-[a-z0-9]{6,10}$/, '');
     const shortId = new mongoose.Types.ObjectId().toString().slice(-6).toLowerCase();
+
+    // FIX: si viene como portada, limpia las anteriores
+    if (b.portada) {
+      await Post.updateMany({}, { $set: { Entry_Is_Portada: false, carouselMain: false, portada: false } });
+    }
 
     const doc = await Post.create({
       Entry_Title: b.Entry_Title,
       Entry_Slug: `${base}-${shortId}`,
       Entry_Resume: b.Entry_Resume || '',
-      Entry_Body: b.Entry_Body || b.Entry_Content || '',
+      Entry_Body: b.Entry_Body || '',
       Entry_Content: b.Entry_Content || b.Entry_Body || '',
       Entry_Featured_Image: b.Entry_Featured_Image,
       Entry_Category: b.Entry_Category || 'ciudad',
-      Entry_Category_Label: b.Entry_Category_Label || b.Entry_Category || 'Ciudad',
+      Entry_Category_Label: b.Entry_Category_Label || 'Ciudad',
       Entry_Tags: b.Entry_Tags || [],
-      Tags: b.Tags || (b.Entry_Tags || []).join(','),
-      ogImage: b.ogImage || b.Entry_Featured_Image,
       portada: !!b.portada,
       destacada: !!b.destacada,
       Entry_Is_Portada: !!b.portada,
       carouselMain: !!b.portada,
+      Entry_Portada_At: b.portada ? new Date() : null,
+      carouselMainAt: b.portada ? new Date() : null,
     });
 
     res.status(201).json({ data: doc, post: doc, ok: true });
   } catch (e) {
-    console.error('[POST v2 entradas]', e);
     res.status(500).json({ message: e.message });
   }
 });

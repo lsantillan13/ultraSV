@@ -870,45 +870,57 @@ router.post('/', /*#__PURE__*/function () {
           }));
         case 1:
           base = slugify(b.Entry_Slug || b.Entry_Title).replace(/-[a-z0-9]{6,10}$/, '');
-          shortId = new _mongoose["default"].Types.ObjectId().toString().slice(-6).toLowerCase();
+          shortId = new _mongoose["default"].Types.ObjectId().toString().slice(-6).toLowerCase(); // FIX: si viene como portada, limpia las anteriores
+          if (!b.portada) {
+            _context14.n = 2;
+            break;
+          }
           _context14.n = 2;
+          return Post.updateMany({}, {
+            $set: {
+              Entry_Is_Portada: false,
+              carouselMain: false,
+              portada: false
+            }
+          });
+        case 2:
+          _context14.n = 3;
           return Post.create({
             Entry_Title: b.Entry_Title,
             Entry_Slug: "".concat(base, "-").concat(shortId),
             Entry_Resume: b.Entry_Resume || '',
-            Entry_Body: b.Entry_Body || b.Entry_Content || '',
+            Entry_Body: b.Entry_Body || '',
             Entry_Content: b.Entry_Content || b.Entry_Body || '',
             Entry_Featured_Image: b.Entry_Featured_Image,
             Entry_Category: b.Entry_Category || 'ciudad',
-            Entry_Category_Label: b.Entry_Category_Label || b.Entry_Category || 'Ciudad',
+            Entry_Category_Label: b.Entry_Category_Label || 'Ciudad',
             Entry_Tags: b.Entry_Tags || [],
-            Tags: b.Tags || (b.Entry_Tags || []).join(','),
-            ogImage: b.ogImage || b.Entry_Featured_Image,
             portada: !!b.portada,
             destacada: !!b.destacada,
             Entry_Is_Portada: !!b.portada,
-            carouselMain: !!b.portada
+            carouselMain: !!b.portada,
+            Entry_Portada_At: b.portada ? new Date() : null,
+            carouselMainAt: b.portada ? new Date() : null
           });
-        case 2:
+        case 3:
           doc = _context14.v;
           res.status(201).json({
             data: doc,
             post: doc,
             ok: true
           });
-          _context14.n = 4;
+          _context14.n = 5;
           break;
-        case 3:
-          _context14.p = 3;
+        case 4:
+          _context14.p = 4;
           _t14 = _context14.v;
-          console.error('[POST v2 entradas]', _t14);
           res.status(500).json({
             message: _t14.message
           });
-        case 4:
+        case 5:
           return _context14.a(2);
       }
-    }, _callee14, null, [[0, 3]]);
+    }, _callee14, null, [[0, 4]]);
   }));
   return function (_x29, _x30) {
     return _ref14.apply(this, arguments);
