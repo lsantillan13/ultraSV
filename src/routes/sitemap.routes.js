@@ -28,8 +28,8 @@ async function getPosts(limit = 5000, filter = {}) {
   }
 }
 
-// robots.txt -> apunta al index ahora
-router.get('/robots.txt', (req, res) => {
+// robots.txt -> apunta solo al index
+router.get(['/robots.txt', '/api/v2/robots.txt'], (req, res) => {
   res.set('Cache-Control', 'public, max-age=86400');
   res.type('text/plain').send(`User-agent: *
 Allow: /
@@ -51,7 +51,7 @@ const sitemapHandler = async (req, res) => {
     const slug = esc(p.Entry_Slug);
     const lastmod = cleanDate(p.updatedAt || p.createdAt);
     const img = isCloudinary(p.Entry_Featured_Image)
-     ? `\n <image:image><image:loc>${esc(p.Entry_Featured_Image)}</image:loc><image:title><![CDATA[${safeCdata(p.Entry_Title)}]]></image:title></image:image>`
+    ? `\n <image:image><image:loc>${esc(p.Entry_Featured_Image)}</image:loc><image:title><![CDATA[${safeCdata(p.Entry_Title)}]]></image:title></image:image>`
       : '';
     return ` <url><loc>${SITE_URL}/${cat}/${slug}</loc><lastmod>${lastmod}</lastmod><changefreq>daily</changefreq><priority>0.8</priority>${img}</url>`;
   }).join('\n');
@@ -103,7 +103,34 @@ ${urls}
 </urlset>`);
 };
 
-// SITEMAP INDEX - solo los que existen
+// SITEMAP IMAGES - FIX: nunca 404, si no hay imágenes devuelve XML vacío válido
+const imagesHandler = async (req, res) => {
+  let posts = await getPosts(1000, { Entry_Featured_Image: { $exists: true, $ne: "" } });
+  posts = posts.filter(p => isCloudinary(p.Entry_Featured_Image));
+
+  let urls = '';
+  if (posts.length > 0) {
+    urls = posts.map(p => {
+      const cat = esc((p.Entry_Category || 'noticia').toLowerCase());
+      const slug = esc(p.Entry_Slug);
+      return ` <url>
+    <loc>${SITE_URL}/${cat}/${slug}</loc>
+    <image:image>
+      <image:loc>${esc(p.Entry_Featured_Image)}</image:loc>
+      <image:title><![CDATA[${safeCdata(p.Entry_Title)}]]></image:title>
+    </image:image>
+  </url>`;
+    }).join('\n');
+  }
+
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.header('Content-Type', 'application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+${urls}
+</urlset>`);
+};
+
+// SITEMAP INDEX - solo los que existen y funcionan
 const sitemapIndexHandler = (req, res) => {
   const lastmod = cleanDate(new Date());
   res.set('Cache-Control', 'public, max-age=3600');
@@ -111,6 +138,7 @@ const sitemapIndexHandler = (req, res) => {
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap><loc>${SITE_URL}/sitemap.xml</loc><lastmod>${lastmod}</lastmod></sitemap>
   <sitemap><loc>${SITE_URL}/sitemap-news.xml</loc><lastmod>${lastmod}</lastmod></sitemap>
+  <sitemap><loc>${SITE_URL}/sitemap-images.xml</loc><lastmod>${lastmod}</lastmod></sitemap>
   <sitemap><loc>${SITE_URL}/sitemap-archive.xml</loc><lastmod>${lastmod}</lastmod></sitemap>
 </sitemapindex>`);
 };
@@ -118,6 +146,7 @@ const sitemapIndexHandler = (req, res) => {
 router.get(['/sitemap.xml', '/api/v2/sitemap.xml'], sitemapHandler);
 router.get(['/sitemap-news.xml', '/api/v2/sitemap-news.xml'], newsHandler);
 router.get(['/sitemap-archive.xml', '/api/v2/sitemap-archive.xml'], archiveHandler);
+router.get(['/sitemap-images.xml', '/api/v2/sitemap-images.xml'], imagesHandler);
 router.get(['/sitemap-index.xml', '/api/v2/sitemap-index.xml'], sitemapIndexHandler);
 
 export default router;

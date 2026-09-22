@@ -90,8 +90,8 @@ app.use(function (req, res, next) {
   next();
 });
 
-// 2. BOT SEO + JSON-LD - MATA LOS SOFT 404
-var BOT_REGEX = /facebookexternalhit|Twitterbot|WhatsApp|LinkedInBot|Slackbot|TelegramBot|Googlebot|bingbot|Google-InspectionTool/i;
+// 2. BOT SEO + JSON-LD - MATA LOS SOFT 404 - FIX: sin Googlebot, lo maneja el Worker
+var BOT_REGEX = /facebookexternalhit|Twitterbot|WhatsApp|LinkedInBot|Slackbot|TelegramBot/i;
 var SITE_CANONICAL = 'https://voxdiario.com';
 function escAttr() {
   var str = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
@@ -238,8 +238,9 @@ app.get('/', function (req, res) {
   return res.send("<h1>VoxDiario API v2 Running</h1>");
 });
 
-// Sitemaps primero para que no los tape el 404
+// Sitemaps primero para que no los tape el 404 - DOBLE MOUNT PARA WORKER
 app.use('/', _sitemapRoutes["default"]);
+app.use('/api/v2', _sitemapRoutes["default"]);
 app.use('/api/posts', _postRoutes["default"]);
 app.use('/api/content', _contentRoutes["default"]);
 app.use('/api/auth', _authRoutes["default"]);

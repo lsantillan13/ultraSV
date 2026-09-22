@@ -35,44 +35,44 @@ var cleanDate = function cleanDate(d) {
 };
 function getPosts() {
   return _getPosts.apply(this, arguments);
-} // robots.txt -> apunta al index ahora
+} // robots.txt -> apunta solo al index
 function _getPosts() {
-  _getPosts = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
+  _getPosts = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5() {
     var limit,
       filter,
       coll,
-      _args4 = arguments,
+      _args5 = arguments,
       _t;
-    return _regenerator().w(function (_context4) {
-      while (1) switch (_context4.p = _context4.n) {
+    return _regenerator().w(function (_context5) {
+      while (1) switch (_context5.p = _context5.n) {
         case 0:
-          limit = _args4.length > 0 && _args4[0] !== undefined ? _args4[0] : 5000;
-          filter = _args4.length > 1 && _args4[1] !== undefined ? _args4[1] : {};
+          limit = _args5.length > 0 && _args5[0] !== undefined ? _args5[0] : 5000;
+          filter = _args5.length > 1 && _args5[1] !== undefined ? _args5[1] : {};
           if (!(_mongoose["default"].connection.readyState !== 1 || !_mongoose["default"].connection.db)) {
-            _context4.n = 1;
+            _context5.n = 1;
             break;
           }
-          return _context4.a(2, []);
+          return _context5.a(2, []);
         case 1:
-          _context4.p = 1;
+          _context5.p = 1;
           coll = _mongoose["default"].connection.db.collection(COLLECTION);
-          _context4.n = 2;
+          _context5.n = 2;
           return coll.find(filter).sort({
             createdAt: -1
           }).limit(limit).toArray();
         case 2:
-          return _context4.a(2, _context4.v);
+          return _context5.a(2, _context5.v);
         case 3:
-          _context4.p = 3;
-          _t = _context4.v;
+          _context5.p = 3;
+          _t = _context5.v;
           console.error('[Sitemap] getPosts error', _t.message);
-          return _context4.a(2, []);
+          return _context5.a(2, []);
       }
-    }, _callee4, null, [[1, 3]]);
+    }, _callee5, null, [[1, 3]]);
   }));
   return _getPosts.apply(this, arguments);
 }
-router.get('/robots.txt', function (req, res) {
+router.get(['/robots.txt', '/api/v2/robots.txt'], function (req, res) {
   res.set('Cache-Control', 'public, max-age=86400');
   res.type('text/plain').send("User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\nDisallow: /api/auth/\nDisallow: /RadioAdmin/\n\nSitemap: ".concat(SITE_URL, "/sitemap-index.xml"));
 });
@@ -200,14 +200,54 @@ var archiveHandler = /*#__PURE__*/function () {
   };
 }();
 
-// SITEMAP INDEX - solo los que existen
+// SITEMAP IMAGES - FIX: nunca 404, si no hay imágenes devuelve XML vacío válido
+var imagesHandler = /*#__PURE__*/function () {
+  var _ref4 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(req, res) {
+    var posts, urls;
+    return _regenerator().w(function (_context4) {
+      while (1) switch (_context4.n) {
+        case 0:
+          _context4.n = 1;
+          return getPosts(1000, {
+            Entry_Featured_Image: {
+              $exists: true,
+              $ne: ""
+            }
+          });
+        case 1:
+          posts = _context4.v;
+          posts = posts.filter(function (p) {
+            return isCloudinary(p.Entry_Featured_Image);
+          });
+          urls = '';
+          if (posts.length > 0) {
+            urls = posts.map(function (p) {
+              var cat = esc((p.Entry_Category || 'noticia').toLowerCase());
+              var slug = esc(p.Entry_Slug);
+              return " <url>\n    <loc>".concat(SITE_URL, "/").concat(cat, "/").concat(slug, "</loc>\n    <image:image>\n      <image:loc>").concat(esc(p.Entry_Featured_Image), "</image:loc>\n      <image:title><![CDATA[").concat(safeCdata(p.Entry_Title), "]]></image:title>\n    </image:image>\n  </url>");
+            }).join('\n');
+          }
+          res.set('Cache-Control', 'public, max-age=3600');
+          res.header('Content-Type', 'application/xml').send("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" xmlns:image=\"http://www.google.com/schemas/sitemap-image/1.1\">\n".concat(urls, "\n</urlset>"));
+        case 2:
+          return _context4.a(2);
+      }
+    }, _callee4);
+  }));
+  return function imagesHandler(_x7, _x8) {
+    return _ref4.apply(this, arguments);
+  };
+}();
+
+// SITEMAP INDEX - solo los que existen y funcionan
 var sitemapIndexHandler = function sitemapIndexHandler(req, res) {
   var lastmod = cleanDate(new Date());
   res.set('Cache-Control', 'public, max-age=3600');
-  res.header('Content-Type', 'application/xml').send("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap><loc>".concat(SITE_URL, "/sitemap.xml</loc><lastmod>").concat(lastmod, "</lastmod></sitemap>\n  <sitemap><loc>").concat(SITE_URL, "/sitemap-news.xml</loc><lastmod>").concat(lastmod, "</lastmod></sitemap>\n  <sitemap><loc>").concat(SITE_URL, "/sitemap-archive.xml</loc><lastmod>").concat(lastmod, "</lastmod></sitemap>\n</sitemapindex>"));
+  res.header('Content-Type', 'application/xml').send("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap><loc>".concat(SITE_URL, "/sitemap.xml</loc><lastmod>").concat(lastmod, "</lastmod></sitemap>\n  <sitemap><loc>").concat(SITE_URL, "/sitemap-news.xml</loc><lastmod>").concat(lastmod, "</lastmod></sitemap>\n  <sitemap><loc>").concat(SITE_URL, "/sitemap-images.xml</loc><lastmod>").concat(lastmod, "</lastmod></sitemap>\n  <sitemap><loc>").concat(SITE_URL, "/sitemap-archive.xml</loc><lastmod>").concat(lastmod, "</lastmod></sitemap>\n</sitemapindex>"));
 };
 router.get(['/sitemap.xml', '/api/v2/sitemap.xml'], sitemapHandler);
 router.get(['/sitemap-news.xml', '/api/v2/sitemap-news.xml'], newsHandler);
 router.get(['/sitemap-archive.xml', '/api/v2/sitemap-archive.xml'], archiveHandler);
+router.get(['/sitemap-images.xml', '/api/v2/sitemap-images.xml'], imagesHandler);
 router.get(['/sitemap-index.xml', '/api/v2/sitemap-index.xml'], sitemapIndexHandler);
 var _default = exports["default"] = router;
