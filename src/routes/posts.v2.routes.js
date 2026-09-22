@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
+import { submitIndexNow } from '../libs/indexnow.js'; // <-- NUEVO
 const router = Router();
 
 const cacheV2 = (req, res, next) => {
@@ -26,7 +27,7 @@ router.get('/', cacheV2, async (req, res) => {
     if (search && search.length >= 2) {
       const regex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       filter.$or = [{ Entry_Title: regex }, { Entry_Resume: regex }, { Entry_Tags: regex }, { Entry_Category: regex }];
-      if(filter.Entry_Is_Portada) delete filter.$or; // si es portada=true, prioriza eso
+      if(filter.Entry_Is_Portada) delete filter.$or;
     }
     const [posts, total] = await Promise.all([
       Post.find(filter).sort({ updatedAt: -1, createdAt: -1 }).skip(skip).limit(limit).lean(),
@@ -75,7 +76,6 @@ router.get('/carousel', cacheV2, async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-// FIX: ahora portada devuelve 5 como carousel para el admin
 router.get('/portada', cacheV2, async (req, res) => {
   try {
     const Post = getPostModel();
@@ -144,7 +144,6 @@ router.get('/slugs', cacheV2, async (req, res) => {
 router.patch('/:id/portada', async (req, res) => {
   try {
     const Post = getPostModel();
-    console.log(`[PATCH portada] ${req.params.id} active=${req.body.active}`);
     if (req.body.active) {
       await Post.updateMany({}, { $set: { Entry_Is_Portada: false, carouselMain: false } });
       await Post.findByIdAndUpdate(req.params.id, { Entry_Is_Portada: true, Entry_Portada_At: new Date(), carouselMain: true, carouselMainAt: new Date(), portada: true });
@@ -202,12 +201,11 @@ router.post('/', async (req, res) => {
   try {
     const Post = getPostModel();
     const b = req.body;
-    if (!b.Entry_Title || !b.Entry_Featured_Image) return res.status(400).json({ message: 'Falta título o imagen' });
+    if (!b.Entry_Title ||!b.Entry_Featured_Image) return res.status(400).json({ message: 'Falta título o imagen' });
 
     const base = slugify(b.Entry_Slug || b.Entry_Title).replace(/-[a-z0-9]{6,10}$/, '');
     const shortId = new mongoose.Types.ObjectId().toString().slice(-6).toLowerCase();
 
-    // FIX: si viene como portada, limpia las anteriores
     if (b.portada) {
       await Post.updateMany({}, { $set: { Entry_Is_Portada: false, carouselMain: false, portada: false } });
     }
@@ -222,13 +220,18 @@ router.post('/', async (req, res) => {
       Entry_Category: b.Entry_Category || 'ciudad',
       Entry_Category_Label: b.Entry_Category_Label || 'Ciudad',
       Entry_Tags: b.Entry_Tags || [],
-      portada: !!b.portada,
-      destacada: !!b.destacada,
-      Entry_Is_Portada: !!b.portada,
-      carouselMain: !!b.portada,
-      Entry_Portada_At: b.portada ? new Date() : null,
-      carouselMainAt: b.portada ? new Date() : null,
+      portada:!!b.portada,
+      destacada:!!b.destacada,
+      Entry_Is_Portada:!!b.portada,
+      carouselMain:!!b.portada,
+      Entry_Portada_At: b.portada? new Date() : null,
+      carouselMainAt: b.portada? new Date() : null,
     });
+
+    // --- INDEXNOW + BING PING AL PUBLICAR ---
+    const cat = (doc.Entry_Category || 'noticia').toLowerCase();
+    const newUrl = `https://voxdiario.com/${cat}/${doc.Entry_Slug}`;
+    submitIndexNow([newUrl]); // no await, no frena la respuesta
 
     res.status(201).json({ data: doc, post: doc, ok: true });
   } catch (e) {
@@ -261,6 +264,14 @@ router.put('/:id', async (req, res) => {
       body.Entry_Slug = `${base}-${req.params.id.slice(-6).toLowerCase()}`;
     }
     const updated = await Post.findByIdAndUpdate(req.params.id, body, { new: true });
+
+    // --- INDEXNOW AL EDITAR TAMBIEN ---
+    if(updated){
+      const cat = (updated.Entry_Category || 'noticia').toLowerCase();
+      const updUrl = `https://voxdiario.com/${cat}/${updated.Entry_Slug}`;
+      submitIndexNow([updUrl]);
+    }
+
     res.json({ data: updated, post: updated });
   } catch (e) {
     console.error('[PUT v2]', e);

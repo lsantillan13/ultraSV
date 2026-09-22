@@ -16,6 +16,7 @@ import ttsRouter from './routes/v2/tts.routes.js';
 import viewsV2Router from './routes/v2/views.routes.js';
 import categoriasRouter from './routes/v2/categorias.routes.js';
 import { startTrendingCron } from './crons/trending.cron.js';
+import { startSitemapPingCron } from './crons/sitemapPing.cron.js';
 import axios from 'axios';
 import 'dotenv/config'
 import cors from 'cors';
@@ -26,9 +27,6 @@ const app = express();
 
 const whitelist = [
   'https://voxdiario.com',
-  'https://www.voxdiario.com',
-  'https://voxdiario.com.ar',
-  'https://www.voxdiario.com.ar',
   'http://localhost:3000',
   'http://localhost:5173',
 ];
@@ -54,6 +52,7 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(morgan('dev'));
 createRoles();
 startTrendingCron();
+startSitemapPingCron();
 
 // --- ENDPOINTS RADIO ---
 app.get('/radio/status', (req, res) => {

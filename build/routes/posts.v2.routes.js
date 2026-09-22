@@ -7,6 +7,7 @@ Object.defineProperty(exports, "__esModule", {
 exports["default"] = void 0;
 var _express = require("express");
 var _mongoose = _interopRequireDefault(require("mongoose"));
+var _indexnow = require("../libs/indexnow.js");
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default": e }; }
 function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
 function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
@@ -27,6 +28,7 @@ function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" !=
 function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
+// <-- NUEVO
 var router = (0, _express.Router)();
 var cacheV2 = function cacheV2(req, res, next) {
   res.set('Cache-Control', 'public, max-age=30, s-maxage=120');
@@ -65,7 +67,7 @@ router.get('/', cacheV2, /*#__PURE__*/function () {
             }, {
               Entry_Category: regex
             }];
-            if (filter.Entry_Is_Portada) delete filter.$or; // si es portada=true, prioriza eso
+            if (filter.Entry_Is_Portada) delete filter.$or;
           }
           _context.n = 1;
           return Promise.all([Post.find(filter).sort({
@@ -298,8 +300,6 @@ router.get('/carousel', cacheV2, /*#__PURE__*/function () {
     return _ref4.apply(this, arguments);
   };
 }());
-
-// FIX: ahora portada devuelve 5 como carousel para el admin
 router.get('/portada', cacheV2, /*#__PURE__*/function () {
   var _ref5 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(req, res) {
     var Post, main, sides, _main2, excludeIds, auto, all, _t5;
@@ -626,7 +626,6 @@ router.patch('/:id/portada', /*#__PURE__*/function () {
         case 0:
           _context1.p = 0;
           Post = getPostModel();
-          console.log("[PATCH portada] ".concat(req.params.id, " active=").concat(req.body.active));
           if (!req.body.active) {
             _context1.n = 3;
             break;
@@ -854,7 +853,7 @@ router.get('/slug/:slug', cacheV2, /*#__PURE__*/function () {
 }());
 router.post('/', /*#__PURE__*/function () {
   var _ref14 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14(req, res) {
-    var Post, b, base, shortId, doc, _t14;
+    var Post, b, base, shortId, doc, cat, newUrl, _t14;
     return _regenerator().w(function (_context14) {
       while (1) switch (_context14.p = _context14.n) {
         case 0:
@@ -870,7 +869,7 @@ router.post('/', /*#__PURE__*/function () {
           }));
         case 1:
           base = slugify(b.Entry_Slug || b.Entry_Title).replace(/-[a-z0-9]{6,10}$/, '');
-          shortId = new _mongoose["default"].Types.ObjectId().toString().slice(-6).toLowerCase(); // FIX: si viene como portada, limpia las anteriores
+          shortId = new _mongoose["default"].Types.ObjectId().toString().slice(-6).toLowerCase();
           if (!b.portada) {
             _context14.n = 2;
             break;
@@ -904,6 +903,11 @@ router.post('/', /*#__PURE__*/function () {
           });
         case 3:
           doc = _context14.v;
+          // --- INDEXNOW + BING PING AL PUBLICAR ---
+          cat = (doc.Entry_Category || 'noticia').toLowerCase();
+          newUrl = "https://voxdiario.com/".concat(cat, "/").concat(doc.Entry_Slug);
+          (0, _indexnow.submitIndexNow)([newUrl]); // no await, no frena la respuesta
+
           res.status(201).json({
             data: doc,
             post: doc,
@@ -928,7 +932,7 @@ router.post('/', /*#__PURE__*/function () {
 }());
 router.put('/:id', /*#__PURE__*/function () {
   var _ref15 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee15(req, res) {
-    var Post, existing, body, oldSlug, parts, last, hasShortId, base, updated, _t15;
+    var Post, existing, body, oldSlug, parts, last, hasShortId, base, updated, cat, updUrl, _t15;
     return _regenerator().w(function (_context15) {
       while (1) switch (_context15.p = _context15.n) {
         case 0:
@@ -971,6 +975,12 @@ router.put('/:id', /*#__PURE__*/function () {
           });
         case 3:
           updated = _context15.v;
+          // --- INDEXNOW AL EDITAR TAMBIEN ---
+          if (updated) {
+            cat = (updated.Entry_Category || 'noticia').toLowerCase();
+            updUrl = "https://voxdiario.com/".concat(cat, "/").concat(updated.Entry_Slug);
+            (0, _indexnow.submitIndexNow)([updUrl]);
+          }
           res.json({
             data: updated,
             post: updated
