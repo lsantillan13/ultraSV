@@ -12,11 +12,11 @@ function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { 
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
 var router = _express["default"].Router();
-var SITE_URL = 'https://www.voxdiario.com';
+var SITE_URL = 'https://voxdiario.com'; // SIN WWW - CANONICA FINAL
 var COLLECTION = 'posts';
 function esc() {
   var str = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
-  return String(str !== null && str !== void 0 ? str : '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return String(str !== null && str !== void 0 ? str : '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').trim();
 }
 function safeCdata() {
   var str = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
@@ -24,59 +24,60 @@ function safeCdata() {
 }
 var isCloudinary = function isCloudinary() {
   var url = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
-  return /res\.cloudinary\.com/i.test(url) && !String(url).startsWith('data:') && String(url).length < 1000;
+  return /res\.cloudinary\.com/i.test(url) && !String(url).startsWith('data:') && String(url).length < 2000;
 };
 var cleanDate = function cleanDate(d) {
   try {
-    return new Date(d).toISOString().split('.')[0] + '+00:00';
+    return new Date(d).toISOString();
   } catch (_unused) {
-    return new Date().toISOString().split('.')[0] + '+00:00';
+    return new Date().toISOString();
   }
 };
 function getPosts() {
   return _getPosts.apply(this, arguments);
 }
 function _getPosts() {
-  _getPosts = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
+  _getPosts = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
     var limit,
       filter,
       coll,
-      _args4 = arguments,
+      _args3 = arguments,
       _t;
-    return _regenerator().w(function (_context4) {
-      while (1) switch (_context4.p = _context4.n) {
+    return _regenerator().w(function (_context3) {
+      while (1) switch (_context3.p = _context3.n) {
         case 0:
-          limit = _args4.length > 0 && _args4[0] !== undefined ? _args4[0] : 500;
-          filter = _args4.length > 1 && _args4[1] !== undefined ? _args4[1] : {};
+          limit = _args3.length > 0 && _args3[0] !== undefined ? _args3[0] : 5000;
+          filter = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
           if (!(_mongoose["default"].connection.readyState !== 1 || !_mongoose["default"].connection.db)) {
-            _context4.n = 1;
+            _context3.n = 1;
             break;
           }
-          return _context4.a(2, []);
+          return _context3.a(2, []);
         case 1:
-          _context4.p = 1;
+          _context3.p = 1;
           coll = _mongoose["default"].connection.db.collection(COLLECTION);
-          _context4.n = 2;
+          _context3.n = 2;
           return coll.find(filter).sort({
             createdAt: -1
           }).limit(limit).toArray();
         case 2:
-          return _context4.a(2, _context4.v);
+          return _context3.a(2, _context3.v);
         case 3:
-          _context4.p = 3;
-          _t = _context4.v;
+          _context3.p = 3;
+          _t = _context3.v;
           console.error('[Sitemap] getPosts error', _t.message);
-          return _context4.a(2, []);
+          return _context3.a(2, []);
       }
-    }, _callee4, null, [[1, 3]]);
+    }, _callee3, null, [[1, 3]]);
   }));
   return _getPosts.apply(this, arguments);
 }
 router.get('/robots.txt', function (req, res) {
-  res.type('text/plain').send("User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\nDisallow: /api/auth/\n\nSitemap: ".concat(SITE_URL, "/sitemap.xml\nSitemap: ").concat(SITE_URL, "/sitemap-news.xml"));
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.type('text/plain').send("User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\nDisallow: /api/auth/\nDisallow: /RadioAdmin/\n\nSitemap: ".concat(SITE_URL, "/sitemap.xml\nSitemap: ").concat(SITE_URL, "/sitemap-news.xml"));
 });
 
-// SITEMAP PRINCIPAL - MINIMALISTA VALIDO (SIN IMAGE)
+// SITEMAP PRINCIPAL - CON IMAGES PARA DISCOVER
 var sitemapHandler = /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(req, res) {
     var posts, urls;
@@ -84,7 +85,7 @@ var sitemapHandler = /*#__PURE__*/function () {
       while (1) switch (_context.n) {
         case 0:
           _context.n = 1;
-          return getPosts(800, {
+          return getPosts(5000, {
             Entry_Slug: {
               $exists: true,
               $ne: "",
@@ -97,16 +98,17 @@ var sitemapHandler = /*#__PURE__*/function () {
         case 1:
           posts = _context.v;
           posts = posts.filter(function (p) {
-            return p.Entry_Slug && !p.Entry_Slug.includes(' ');
+            return p.Entry_Slug && !p.Entry_Slug.includes(' ') && p.Entry_Slug.length > 2;
           });
-          posts = posts.slice(0, 500);
           urls = posts.map(function (p) {
-            var cat = esc((p.Entry_Category || 'noticia').toLowerCase().trim());
-            var slug = esc(p.Entry_Slug.trim());
+            var cat = esc((p.Entry_Category || 'noticia').toLowerCase());
+            var slug = esc(p.Entry_Slug);
             var lastmod = cleanDate(p.updatedAt || p.createdAt);
-            return " <url><loc>".concat(SITE_URL, "/").concat(cat, "/").concat(slug, "</loc><lastmod>").concat(lastmod, "</lastmod></url>");
+            var img = isCloudinary(p.Entry_Featured_Image) ? "\n <image:image><image:loc>".concat(esc(p.Entry_Featured_Image), "</image:loc><image:title><![CDATA[").concat(safeCdata(p.Entry_Title), "]]></image:title></image:image>") : '';
+            return " <url><loc>".concat(SITE_URL, "/").concat(cat, "/").concat(slug, "</loc><lastmod>").concat(lastmod, "</lastmod><changefreq>daily</changefreq><priority>0.8</priority>").concat(img, "</url>");
           }).join('\n');
-          res.header('Content-Type', 'application/xml').send("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <url><loc>".concat(SITE_URL, "/</loc><changefreq>always</changefreq><priority>1.0</priority></url>\n").concat(urls, "\n</urlset>"));
+          res.set('Cache-Control', 'public, max-age=3600'); // 1 hora cache
+          res.header('Content-Type', 'application/xml').send("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" xmlns:image=\"http://www.google.com/schemas/sitemap-image/1.1\">\n  <url><loc>".concat(SITE_URL, "/</loc><changefreq>always</changefreq><priority>1.0</priority></url>\n").concat(urls, "\n</urlset>"));
         case 2:
           return _context.a(2);
       }
@@ -116,6 +118,8 @@ var sitemapHandler = /*#__PURE__*/function () {
     return _ref.apply(this, arguments);
   };
 }();
+
+// GOOGLE NEWS - ULTIMAS 48HS
 var newsHandler = /*#__PURE__*/function () {
   var _ref2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(req, res) {
     var since, posts, urls;
@@ -136,13 +140,14 @@ var newsHandler = /*#__PURE__*/function () {
         case 1:
           posts = _context2.v;
           posts = posts.filter(function (p) {
-            return isCloudinary(p.Entry_Featured_Image || '');
+            return p.Entry_Title && p.Entry_Title.length > 10;
           });
           urls = posts.map(function (p) {
-            var cat = esc(p.Entry_Category || 'noticia');
+            var cat = esc((p.Entry_Category || 'noticia').toLowerCase());
             var slug = esc(p.Entry_Slug);
             return " <url><loc>".concat(SITE_URL, "/").concat(cat, "/").concat(slug, "</loc><news:news><news:publication><news:name>Vox Diario</news:name><news:language>es</news:language></news:publication><news:publication_date>").concat(cleanDate(p.createdAt), "</news:publication_date><news:title><![CDATA[").concat(safeCdata(p.Entry_Title), "]]></news:title></news:news></url>");
           }).join('\n');
+          res.set('Cache-Control', 'public, max-age=600');
           res.header('Content-Type', 'application/xml').send("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" xmlns:news=\"http://www.google.com/schemas/sitemap-news/0.9\">\n".concat(urls, "\n</urlset>"));
         case 2:
           return _context2.a(2);
@@ -154,36 +159,5 @@ var newsHandler = /*#__PURE__*/function () {
   };
 }();
 router.get(['/sitemap.xml', '/api/v2/sitemap.xml'], sitemapHandler);
-router.get(['/sitemap-news.xml', '/api/v2/sitemap-news.xml', '/api/v2/sitemap-news'], newsHandler);
-router.get(['/feed.xml', '/api/v2/feed.xml'], /*#__PURE__*/function () {
-  var _ref3 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(req, res) {
-    var posts, items;
-    return _regenerator().w(function (_context3) {
-      while (1) switch (_context3.n) {
-        case 0:
-          _context3.n = 1;
-          return getPosts(100, {
-            Entry_Slug: {
-              $exists: true,
-              $ne: ""
-            }
-          });
-        case 1:
-          posts = _context3.v;
-          posts = posts.filter(function (p) {
-            return isCloudinary(p.Entry_Featured_Image || '');
-          });
-          items = posts.map(function (p) {
-            return "<item><title><![CDATA[".concat(safeCdata(p.Entry_Title), "]]></title><link>").concat(SITE_URL, "/").concat(esc(p.Entry_Category), "/").concat(esc(p.Entry_Slug), "</link><description><![CDATA[").concat(safeCdata((p.Entry_Resume || '').slice(0, 300)), "]]></description><pubDate>").concat(new Date(p.createdAt).toUTCString(), "</pubDate></item>");
-          }).join('\n');
-          res.header('Content-Type', 'application/rss+xml').send("<?xml version=\"1.0\"?><rss version=\"2.0\"><channel><title>Vox Diario</title><link>".concat(SITE_URL, "</link><description>Noticias de Neuqu\xE9n y Patagonia</description>").concat(items, "</channel></rss>"));
-        case 2:
-          return _context3.a(2);
-      }
-    }, _callee3);
-  }));
-  return function (_x5, _x6) {
-    return _ref3.apply(this, arguments);
-  };
-}());
+router.get(['/sitemap-news.xml', '/api/v2/sitemap-news.xml'], newsHandler);
 var _default = exports["default"] = router;

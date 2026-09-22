@@ -35,11 +35,10 @@ const whitelist = [
 
 const corsOptions = {
   origin: (origin, cb) => {
-    if (!origin) return cb(null, true); // Postman / server
+    if (!origin) return cb(null, true);
     if (whitelist.includes(origin)) return cb(null, true);
     if (process.env.NODE_ENV!== 'production') return cb(null, true);
-    // En prod bloqueamos lo que no esté en whitelist
-    return cb(null, true); // cambialo a cb(new Error('Not allowed')) si querés bloquear
+    return cb(null, true);
   },
   credentials: true,
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
@@ -56,7 +55,7 @@ app.use(morgan('dev'));
 createRoles();
 startTrendingCron();
 
-// --- ENDPOINTS RADIO PARA DEBUG ---
+// --- ENDPOINTS RADIO ---
 app.get('/radio/status', (req, res) => {
   const radio = app.get('radio');
   res.json(radio? radio.getStatus() : { isOnAir: false, listeners: 0 });
@@ -67,37 +66,85 @@ app.get('/radio/reset', (req, res) => {
   res.json({ ok: true });
 });
 
-//... tu middleware de BOTs y el resto igual...
-const BOT_REGEX = /facebookexternalhit|Twitterbot|WhatsApp|LinkedInBot|Slackbot|TelegramBot|Googlebot|bingbot/i;
+// 1. FUERZA CANONICA SIN-WWW 301 - MATA LAS 331 DUPLICADAS
+app.use((req, res, next) => {
+  const host = (req.headers.host || '').toLowerCase();
+  if (host.startsWith('www.')) {
+    return res.redirect(301, `https://voxdiario.com${req.originalUrl}`);
+  }
+  next();
+});
+
+// 2. BOT SEO + JSON-LD - MATA LOS SOFT 404
+const BOT_REGEX = /facebookexternalhit|Twitterbot|WhatsApp|LinkedInBot|Slackbot|TelegramBot|Googlebot|bingbot|Google-InspectionTool/i;
 const SITE_CANONICAL = 'https://voxdiario.com';
+
+function escAttr(str = '') {
+  return String(str).replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').trim();
+}
+function escHtml(str = '') {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 app.use(async (req, res, next) => {
   const ua = req.headers['user-agent'] || '';
   if (!BOT_REGEX.test(ua)) return next();
-  if (req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/sitemap') || req.path.startsWith('/radio')) return next();
+  if (req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/sitemap') || req.path.startsWith('/radio') || req.path.startsWith('/feed')) return next();
   if (req.path === '/' || req.path === '/public') return next();
-  const slug = req.path.split('/').pop();
+
+  const slug = req.path.split('/').filter(Boolean).pop();
   if (!slug || slug.length < 3) return next();
-  const shortId = slug.split('-').pop();
+
   const baseLocal = `http://localhost:${process.env.PORT || 8080}`;
-  const tryFetch = async (url) => { try { const { data } = await axios.get(url, { timeout: 4000 }); return data?.data || data?.post || data?.posts?.[0] || data; } catch { return null; } };
+  const tryFetch = async (url) => {
+    try {
+      const { data } = await axios.get(url, { timeout: 4000 });
+      return data?.data || data?.post || data?.posts?.[0] || data;
+    } catch { return null; }
+  };
+
   try {
     let post = await tryFetch(`${baseLocal}/api/v2/entradas/${slug}`);
     if (!post?.Entry_Title) post = await tryFetch(`${baseLocal}/api/v2/entradas/slug/${slug}`);
-    if (!post?.Entry_Title && shortId) post = await tryFetch(`${baseLocal}/api/v2/entradas?search=${shortId}`);
     if (!post?.Entry_Title) return next();
-    const title = String(post.Entry_Title).replace(/"/g, '&quot;');
-    const desc = String(post.Entry_Resume || '').slice(0, 160).replace(/"/g, '&quot;');
+
+    const title = escAttr(post.Entry_Title);
+    const titleHtml = escHtml(post.Entry_Title);
+    const desc = escAttr(String(post.Entry_Resume || post.Entry_Title || '').slice(0, 160));
     const image = post.Entry_Featured_Image || `${SITE_CANONICAL}/og-default.jpg`;
     const url = `${SITE_CANONICAL}${req.path}`;
-    return res.status(200).send(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"/><title>${title} | Vox Diario</title><meta name="description" content="${desc}"/><link rel="canonical" href="${url}"/><meta property="og:title" content="${title}"/><meta property="og:description" content="${desc}"/><meta property="og:image" content="${image}"/><meta property="og:url" content="${url}"/><meta property="og:type" content="article"/><meta property="og:site_name" content="Vox Diario"/><meta name="twitter:card" content="summary_large_image"/></head><body><h1>${title}</h1></body></html>`);
+    const published = post.createdAt? new Date(post.createdAt).toISOString() : new Date().toISOString();
+    const modified = post.updatedAt? new Date(post.updatedAt).toISOString() : published;
+
+    const jsonLd = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      "headline": post.Entry_Title,
+      "description": String(post.Entry_Resume || '').slice(0, 160),
+      "image": [image],
+      "datePublished": published,
+      "dateModified": modified,
+      "author": [{ "@type": "Person", "name": post.Entry_Author || "Vox Diario" }],
+      "publisher": {
+        "@type": "Organization",
+        "name": "Vox Diario",
+        "logo": { "@type": "ImageObject", "url": `${SITE_CANONICAL}/logo.png` }
+      },
+      "mainEntityOfPage": { "@type": "WebPage", "@id": url }
+    });
+
+    res.set('Cache-Control', 'public, max-age=3600');
+    return res.status(200).send(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"/><title>${title} | Vox Diario</title><meta name="description" content="${desc}"/><link rel="canonical" href="${url}"/><meta property="og:title" content="${title}"/><meta property="og:description" content="${desc}"/><meta property="og:image" content="${image}"/><meta property="og:url" content="${url}"/><meta property="og:type" content="article"/><meta property="og:site_name" content="Vox Diario"/><meta property="article:published_time" content="${published}"/><meta property="article:modified_time" content="${modified}"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="${title}"/><meta name="twitter:description" content="${desc}"/><meta name="twitter:image" content="${image}"/><script type="application/ld+json">${jsonLd}</script></head><body><h1>${titleHtml}</h1></body></html>`);
   } catch (e) { return next(); }
 });
 
 app.use('/public', express.static('public'));
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'ultraserver', uptime: process.uptime(), timestamp: Date.now() }));
 app.get('/', (req, res) => res.send(`<h1>VoxDiario API v2 Running</h1>`));
+
+// Sitemaps primero para que no los tape el 404
 app.use('/', sitemapRoutes);
+
 app.use('/api/posts', postRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/auth', authRoutes);

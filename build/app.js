@@ -36,11 +36,10 @@ var app = (0, _express["default"])();
 var whitelist = ['https://voxdiario.com', 'https://www.voxdiario.com', 'https://voxdiario.com.ar', 'https://www.voxdiario.com.ar', 'http://localhost:3000', 'http://localhost:5173'];
 var corsOptions = {
   origin: function origin(_origin, cb) {
-    if (!_origin) return cb(null, true); // Postman / server
+    if (!_origin) return cb(null, true);
     if (whitelist.includes(_origin)) return cb(null, true);
     if (process.env.NODE_ENV !== 'production') return cb(null, true);
-    // En prod bloqueamos lo que no esté en whitelist
-    return cb(null, true); // cambialo a cb(new Error('Not allowed')) si querés bloquear
+    return cb(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -64,7 +63,7 @@ app.use((0, _morgan["default"])('dev'));
 (0, _initialSetup.createRoles)();
 (0, _trendingCron.startTrendingCron)();
 
-// --- ENDPOINTS RADIO PARA DEBUG ---
+// --- ENDPOINTS RADIO ---
 app.get('/radio/status', function (req, res) {
   var radio = app.get('radio');
   res.json(radio ? radio.getStatus() : {
@@ -80,12 +79,29 @@ app.get('/radio/reset', function (req, res) {
   });
 });
 
-//... tu middleware de BOTs y el resto igual...
-var BOT_REGEX = /facebookexternalhit|Twitterbot|WhatsApp|LinkedInBot|Slackbot|TelegramBot|Googlebot|bingbot/i;
+// 1. FUERZA CANONICA SIN-WWW 301 - MATA LAS 331 DUPLICADAS
+app.use(function (req, res, next) {
+  var host = (req.headers.host || '').toLowerCase();
+  if (host.startsWith('www.')) {
+    return res.redirect(301, "https://voxdiario.com".concat(req.originalUrl));
+  }
+  next();
+});
+
+// 2. BOT SEO + JSON-LD - MATA LOS SOFT 404
+var BOT_REGEX = /facebookexternalhit|Twitterbot|WhatsApp|LinkedInBot|Slackbot|TelegramBot|Googlebot|bingbot|Google-InspectionTool/i;
 var SITE_CANONICAL = 'https://voxdiario.com';
+function escAttr() {
+  var str = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+  return String(str).replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').trim();
+}
+function escHtml() {
+  var str = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 app.use(/*#__PURE__*/function () {
   var _ref = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(req, res, next) {
-    var ua, slug, shortId, baseLocal, tryFetch, _post, _post2, _post3, post, title, desc, image, url, _t2;
+    var ua, slug, baseLocal, tryFetch, _post, _post2, post, title, titleHtml, desc, image, url, published, modified, jsonLd, _t2;
     return _regenerator().w(function (_context2) {
       while (1) switch (_context2.p = _context2.n) {
         case 0:
@@ -96,7 +112,7 @@ app.use(/*#__PURE__*/function () {
           }
           return _context2.a(2, next());
         case 1:
-          if (!(req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/sitemap') || req.path.startsWith('/radio'))) {
+          if (!(req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/sitemap') || req.path.startsWith('/radio') || req.path.startsWith('/feed'))) {
             _context2.n = 2;
             break;
           }
@@ -108,14 +124,13 @@ app.use(/*#__PURE__*/function () {
           }
           return _context2.a(2, next());
         case 3:
-          slug = req.path.split('/').pop();
+          slug = req.path.split('/').filter(Boolean).pop();
           if (!(!slug || slug.length < 3)) {
             _context2.n = 4;
             break;
           }
           return _context2.a(2, next());
         case 4:
-          shortId = slug.split('-').pop();
           baseLocal = "http://localhost:".concat(process.env.PORT || 8080);
           tryFetch = /*#__PURE__*/function () {
             var _ref2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(url) {
@@ -157,32 +172,52 @@ app.use(/*#__PURE__*/function () {
         case 7:
           post = _context2.v;
         case 8:
-          if (!(!((_post2 = post) !== null && _post2 !== void 0 && _post2.Entry_Title) && shortId)) {
-            _context2.n = 10;
-            break;
-          }
-          _context2.n = 9;
-          return tryFetch("".concat(baseLocal, "/api/v2/entradas?search=").concat(shortId));
-        case 9:
-          post = _context2.v;
-        case 10:
-          if ((_post3 = post) !== null && _post3 !== void 0 && _post3.Entry_Title) {
-            _context2.n = 11;
+          if ((_post2 = post) !== null && _post2 !== void 0 && _post2.Entry_Title) {
+            _context2.n = 9;
             break;
           }
           return _context2.a(2, next());
-        case 11:
-          title = String(post.Entry_Title).replace(/"/g, '&quot;');
-          desc = String(post.Entry_Resume || '').slice(0, 160).replace(/"/g, '&quot;');
+        case 9:
+          title = escAttr(post.Entry_Title);
+          titleHtml = escHtml(post.Entry_Title);
+          desc = escAttr(String(post.Entry_Resume || post.Entry_Title || '').slice(0, 160));
           image = post.Entry_Featured_Image || "".concat(SITE_CANONICAL, "/og-default.jpg");
           url = "".concat(SITE_CANONICAL).concat(req.path);
-          return _context2.a(2, res.status(200).send("<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"utf-8\"/><title>".concat(title, " | Vox Diario</title><meta name=\"description\" content=\"").concat(desc, "\"/><link rel=\"canonical\" href=\"").concat(url, "\"/><meta property=\"og:title\" content=\"").concat(title, "\"/><meta property=\"og:description\" content=\"").concat(desc, "\"/><meta property=\"og:image\" content=\"").concat(image, "\"/><meta property=\"og:url\" content=\"").concat(url, "\"/><meta property=\"og:type\" content=\"article\"/><meta property=\"og:site_name\" content=\"Vox Diario\"/><meta name=\"twitter:card\" content=\"summary_large_image\"/></head><body><h1>").concat(title, "</h1></body></html>")));
-        case 12:
-          _context2.p = 12;
+          published = post.createdAt ? new Date(post.createdAt).toISOString() : new Date().toISOString();
+          modified = post.updatedAt ? new Date(post.updatedAt).toISOString() : published;
+          jsonLd = JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "NewsArticle",
+            "headline": post.Entry_Title,
+            "description": String(post.Entry_Resume || '').slice(0, 160),
+            "image": [image],
+            "datePublished": published,
+            "dateModified": modified,
+            "author": [{
+              "@type": "Person",
+              "name": post.Entry_Author || "Vox Diario"
+            }],
+            "publisher": {
+              "@type": "Organization",
+              "name": "Vox Diario",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "".concat(SITE_CANONICAL, "/logo.png")
+              }
+            },
+            "mainEntityOfPage": {
+              "@type": "WebPage",
+              "@id": url
+            }
+          });
+          res.set('Cache-Control', 'public, max-age=3600');
+          return _context2.a(2, res.status(200).send("<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"utf-8\"/><title>".concat(title, " | Vox Diario</title><meta name=\"description\" content=\"").concat(desc, "\"/><link rel=\"canonical\" href=\"").concat(url, "\"/><meta property=\"og:title\" content=\"").concat(title, "\"/><meta property=\"og:description\" content=\"").concat(desc, "\"/><meta property=\"og:image\" content=\"").concat(image, "\"/><meta property=\"og:url\" content=\"").concat(url, "\"/><meta property=\"og:type\" content=\"article\"/><meta property=\"og:site_name\" content=\"Vox Diario\"/><meta property=\"article:published_time\" content=\"").concat(published, "\"/><meta property=\"article:modified_time\" content=\"").concat(modified, "\"/><meta name=\"twitter:card\" content=\"summary_large_image\"/><meta name=\"twitter:title\" content=\"").concat(title, "\"/><meta name=\"twitter:description\" content=\"").concat(desc, "\"/><meta name=\"twitter:image\" content=\"").concat(image, "\"/><script type=\"application/ld+json\">").concat(jsonLd, "</script></head><body><h1>").concat(titleHtml, "</h1></body></html>")));
+        case 10:
+          _context2.p = 10;
           _t2 = _context2.v;
           return _context2.a(2, next());
       }
-    }, _callee2, null, [[5, 12]]);
+    }, _callee2, null, [[5, 10]]);
   }));
   return function (_x, _x2, _x3) {
     return _ref.apply(this, arguments);
@@ -200,6 +235,8 @@ app.get('/health', function (req, res) {
 app.get('/', function (req, res) {
   return res.send("<h1>VoxDiario API v2 Running</h1>");
 });
+
+// Sitemaps primero para que no los tape el 404
 app.use('/', _sitemapRoutes["default"]);
 app.use('/api/posts', _postRoutes["default"]);
 app.use('/api/content', _contentRoutes["default"]);

@@ -2,27 +2,22 @@ import express from 'express';
 import mongoose from 'mongoose';
 const router = express.Router();
 
-const SITE_URL = 'https://www.voxdiario.com';
+const SITE_URL = 'https://voxdiario.com'; // SIN WWW - CANONICA FINAL
 const COLLECTION = 'posts';
 
 function esc(str = '') {
-  return String(str?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return String(str?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').trim();
 }
 function safeCdata(str = '') {
   return String(str?? '').replace(/]]>/g, ']]]]><![CDATA[>');
 }
-
-const isCloudinary = (url = '') => /res\.cloudinary\.com/i.test(url) &&!String(url).startsWith('data:') && String(url).length < 1000;
-
+const isCloudinary = (url = '') => /res\.cloudinary\.com/i.test(url) &&!String(url).startsWith('data:') && String(url).length < 2000;
 const cleanDate = (d) => {
-  try {
-    return new Date(d).toISOString().split('.')[0] + '+00:00';
-  } catch {
-    return new Date().toISOString().split('.')[0] + '+00:00';
-  }
+  try { return new Date(d).toISOString(); }
+  catch { return new Date().toISOString(); }
 };
 
-async function getPosts(limit = 500, filter = {}) {
+async function getPosts(limit = 5000, filter = {}) {
   if (mongoose.connection.readyState!== 1 ||!mongoose.connection.db) return [];
   try {
     const coll = mongoose.connection.db.collection(COLLECTION);
@@ -34,47 +29,52 @@ async function getPosts(limit = 500, filter = {}) {
 }
 
 router.get('/robots.txt', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=86400');
   res.type('text/plain').send(`User-agent: *
 Allow: /
 Disallow: /admin/
 Disallow: /api/
 Disallow: /api/auth/
+Disallow: /RadioAdmin/
 
 Sitemap: ${SITE_URL}/sitemap.xml
 Sitemap: ${SITE_URL}/sitemap-news.xml`);
 });
 
-// SITEMAP PRINCIPAL - MINIMALISTA VALIDO (SIN IMAGE)
+// SITEMAP PRINCIPAL - CON IMAGES PARA DISCOVER
 const sitemapHandler = async (req, res) => {
-  let posts = await getPosts(800, { Entry_Slug: { $exists: true, $ne: "", $type: "string" }, createdAt: { $exists: true } });
-  posts = posts.filter(p => p.Entry_Slug &&!p.Entry_Slug.includes(' '));
-  posts = posts.slice(0, 500);
+  let posts = await getPosts(5000, { Entry_Slug: { $exists: true, $ne: "", $type: "string" }, createdAt: { $exists: true } });
+  posts = posts.filter(p => p.Entry_Slug &&!p.Entry_Slug.includes(' ') && p.Entry_Slug.length > 2);
 
   const urls = posts.map(p => {
-    const cat = esc((p.Entry_Category || 'noticia').toLowerCase().trim());
-    const slug = esc(p.Entry_Slug.trim());
+    const cat = esc((p.Entry_Category || 'noticia').toLowerCase());
+    const slug = esc(p.Entry_Slug);
     const lastmod = cleanDate(p.updatedAt || p.createdAt);
-    return ` <url><loc>${SITE_URL}/${cat}/${slug}</loc><lastmod>${lastmod}</lastmod></url>`;
+    const img = isCloudinary(p.Entry_Featured_Image)? `\n <image:image><image:loc>${esc(p.Entry_Featured_Image)}</image:loc><image:title><![CDATA[${safeCdata(p.Entry_Title)}]]></image:title></image:image>` : '';
+    return ` <url><loc>${SITE_URL}/${cat}/${slug}</loc><lastmod>${lastmod}</lastmod><changefreq>daily</changefreq><priority>0.8</priority>${img}</url>`;
   }).join('\n');
 
+  res.set('Cache-Control', 'public, max-age=3600'); // 1 hora cache
   res.header('Content-Type', 'application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url><loc>${SITE_URL}/</loc><changefreq>always</changefreq><priority>1.0</priority></url>
 ${urls}
 </urlset>`);
 };
 
+// GOOGLE NEWS - ULTIMAS 48HS
 const newsHandler = async (req, res) => {
   const since = new Date(Date.now() - 48 * 60 * 60 * 1000);
   let posts = await getPosts(1000, { createdAt: { $gte: since }, Entry_Slug: { $exists: true, $ne: "" } });
-  posts = posts.filter(p => isCloudinary(p.Entry_Featured_Image || ''));
+  posts = posts.filter(p => p.Entry_Title && p.Entry_Title.length > 10);
 
   const urls = posts.map(p => {
-    const cat = esc(p.Entry_Category || 'noticia');
+    const cat = esc((p.Entry_Category || 'noticia').toLowerCase());
     const slug = esc(p.Entry_Slug);
     return ` <url><loc>${SITE_URL}/${cat}/${slug}</loc><news:news><news:publication><news:name>Vox Diario</news:name><news:language>es</news:language></news:publication><news:publication_date>${cleanDate(p.createdAt)}</news:publication_date><news:title><![CDATA[${safeCdata(p.Entry_Title)}]]></news:title></news:news></url>`;
   }).join('\n');
 
+  res.set('Cache-Control', 'public, max-age=600');
   res.header('Content-Type', 'application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
 ${urls}
@@ -82,13 +82,5 @@ ${urls}
 };
 
 router.get(['/sitemap.xml', '/api/v2/sitemap.xml'], sitemapHandler);
-router.get(['/sitemap-news.xml', '/api/v2/sitemap-news.xml', '/api/v2/sitemap-news'], newsHandler);
-
-router.get(['/feed.xml', '/api/v2/feed.xml'], async (req, res) => {
-  let posts = await getPosts(100, { Entry_Slug: { $exists: true, $ne: "" } });
-  posts = posts.filter(p => isCloudinary(p.Entry_Featured_Image || ''));
-  const items = posts.map(p => `<item><title><![CDATA[${safeCdata(p.Entry_Title)}]]></title><link>${SITE_URL}/${esc(p.Entry_Category)}/${esc(p.Entry_Slug)}</link><description><![CDATA[${safeCdata((p.Entry_Resume||'').slice(0,300))}]]></description><pubDate>${new Date(p.createdAt).toUTCString()}</pubDate></item>`).join('\n');
-  res.header('Content-Type', 'application/rss+xml').send(`<?xml version="1.0"?><rss version="2.0"><channel><title>Vox Diario</title><link>${SITE_URL}</link><description>Noticias de Neuquén y Patagonia</description>${items}</channel></rss>`);
-});
-
+router.get(['/sitemap-news.xml', '/api/v2/sitemap-news.xml'], newsHandler);
 export default router;
