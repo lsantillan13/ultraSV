@@ -135,6 +135,16 @@ var postSchema = new _mongoose.Schema({
     type: String,
     trim: true
   },
+  Entry_Og_Image: {
+    type: String,
+    trim: true,
+    "default": ''
+  },
+  ogImage: {
+    type: String,
+    trim: true,
+    "default": ''
+  },
   Entry_Category: {
     type: String,
     trim: true,

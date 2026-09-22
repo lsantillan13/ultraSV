@@ -28,6 +28,8 @@ const postSchema = new Schema({
   Entry_Resume: { type: String, trim: true },
   Entry_Body: { type: String },
   Entry_Featured_Image: { type: String, trim: true },
+  Entry_Og_Image: { type: String, trim: true, default: '' },
+  ogImage: { type: String, trim: true, default: '' },
   Entry_Category: { type: String, trim: true, index: true },
   Entry_Category_Label: { type: String, trim: true },
   Entry_Grupo: { type: String, trim: true },

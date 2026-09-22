@@ -30,27 +30,20 @@ const whitelist = [
   'https://voxdiario.com.ar',
   'https://www.voxdiario.com.ar',
   'http://localhost:3000',
-  'http://127.0.0.1:3000',
   'http://localhost:5173',
-  'http://localhost:8080',
-  'http://192.168.100.11:3000',
-  'http://192.168.100.11:5173',
-  'http://192.168.100.11:8080'
 ];
 
 const corsOptions = {
   origin: (origin, cb) => {
-    // Postman, curl, server-to-server, Worker -> sin Origin
-    if (!origin) return cb(null, true);
+    if (!origin) return cb(null, true); // Postman / server
     if (whitelist.includes(origin)) return cb(null, true);
-    // En dev dejamos pasar todo para no bloquear Vite
-    if (process.env.NODE_ENV !== 'production') return cb(null, true);
-    return cb(null, true); // por ahora open, si querés bloquear: cb(new Error('Not allowed by CORS'))
+    if (process.env.NODE_ENV!== 'production') return cb(null, true);
+    // En prod bloqueamos lo que no esté en whitelist
+    return cb(null, true); // cambialo a cb(new Error('Not allowed')) si querés bloquear
   },
   credentials: true,
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Origin','X-Requested-With','Content-Type','Accept','Authorization','x-access-token','x-auth-token'],
-  exposedHeaders: ['x-access-token','Authorization'],
 };
 
 app.use(cors(corsOptions));
@@ -63,13 +56,25 @@ app.use(morgan('dev'));
 createRoles();
 startTrendingCron();
 
+// --- ENDPOINTS RADIO PARA DEBUG ---
+app.get('/radio/status', (req, res) => {
+  const radio = app.get('radio');
+  res.json(radio? radio.getStatus() : { isOnAir: false, listeners: 0 });
+});
+app.get('/radio/reset', (req, res) => {
+  const radio = app.get('radio');
+  if(radio) radio.setOff();
+  res.json({ ok: true });
+});
+
+//... tu middleware de BOTs y el resto igual...
 const BOT_REGEX = /facebookexternalhit|Twitterbot|WhatsApp|LinkedInBot|Slackbot|TelegramBot|Googlebot|bingbot/i;
 const SITE_CANONICAL = 'https://voxdiario.com';
 
 app.use(async (req, res, next) => {
   const ua = req.headers['user-agent'] || '';
   if (!BOT_REGEX.test(ua)) return next();
-  if (req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/sitemap')) return next();
+  if (req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/sitemap') || req.path.startsWith('/radio')) return next();
   if (req.path === '/' || req.path === '/public') return next();
   const slug = req.path.split('/').pop();
   if (!slug || slug.length < 3) return next();
@@ -91,7 +96,7 @@ app.use(async (req, res, next) => {
 
 app.use('/public', express.static('public'));
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'ultraserver', uptime: process.uptime(), timestamp: Date.now() }));
-app.get('/', (req, res) => res.send(`<h1>VoxDiario API v2 Running</h1><ul><li><a href="/health">Health</a></li><li><a href="/sitemap.xml">/sitemap.xml</a></li><li><a href="/sitemap-news.xml">/sitemap-news.xml</a></li></ul>`));
+app.get('/', (req, res) => res.send(`<h1>VoxDiario API v2 Running</h1>`));
 app.use('/', sitemapRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/content', contentRoutes);
@@ -109,6 +114,6 @@ app.use('/api/v2/tts', ttsRouter);
 app.use('/api/v2/categorias', categoriasRouter);
 app.use('/api/v2/boletin', boletinRoutes);
 
-app.use((req, res) => res.status(404).json({ status: 404, message: 'Ruta no encontrada', path: req.originalUrl }));
+app.use((req, res) => res.status(404).json({ status: 404, message: 'Ruta no encontrada' }));
 app.use((err, req, res, next) => res.status(err.status || 500).json({ status: err.status || 500, message: err.message || 'Error interno' }));
 export default app;

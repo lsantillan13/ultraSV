@@ -33,20 +33,18 @@ function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { 
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
 var app = (0, _express["default"])();
-var whitelist = ['https://voxdiario.com', 'https://www.voxdiario.com', 'https://voxdiario.com.ar', 'https://www.voxdiario.com.ar', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173', 'http://localhost:8080', 'http://192.168.100.11:3000', 'http://192.168.100.11:5173', 'http://192.168.100.11:8080'];
+var whitelist = ['https://voxdiario.com', 'https://www.voxdiario.com', 'https://voxdiario.com.ar', 'https://www.voxdiario.com.ar', 'http://localhost:3000', 'http://localhost:5173'];
 var corsOptions = {
   origin: function origin(_origin, cb) {
-    // Postman, curl, server-to-server, Worker -> sin Origin
-    if (!_origin) return cb(null, true);
+    if (!_origin) return cb(null, true); // Postman / server
     if (whitelist.includes(_origin)) return cb(null, true);
-    // En dev dejamos pasar todo para no bloquear Vite
     if (process.env.NODE_ENV !== 'production') return cb(null, true);
-    return cb(null, true); // por ahora open, si querés bloquear: cb(new Error('Not allowed by CORS'))
+    // En prod bloqueamos lo que no esté en whitelist
+    return cb(null, true); // cambialo a cb(new Error('Not allowed')) si querés bloquear
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'x-access-token', 'x-auth-token'],
-  exposedHeaders: ['x-access-token', 'Authorization']
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'x-access-token', 'x-auth-token']
 };
 app.use((0, _cors["default"])(corsOptions));
 app.options('*', (0, _cors["default"])(corsOptions));
@@ -65,6 +63,24 @@ app.use(_express["default"].urlencoded({
 app.use((0, _morgan["default"])('dev'));
 (0, _initialSetup.createRoles)();
 (0, _trendingCron.startTrendingCron)();
+
+// --- ENDPOINTS RADIO PARA DEBUG ---
+app.get('/radio/status', function (req, res) {
+  var radio = app.get('radio');
+  res.json(radio ? radio.getStatus() : {
+    isOnAir: false,
+    listeners: 0
+  });
+});
+app.get('/radio/reset', function (req, res) {
+  var radio = app.get('radio');
+  if (radio) radio.setOff();
+  res.json({
+    ok: true
+  });
+});
+
+//... tu middleware de BOTs y el resto igual...
 var BOT_REGEX = /facebookexternalhit|Twitterbot|WhatsApp|LinkedInBot|Slackbot|TelegramBot|Googlebot|bingbot/i;
 var SITE_CANONICAL = 'https://voxdiario.com';
 app.use(/*#__PURE__*/function () {
@@ -80,7 +96,7 @@ app.use(/*#__PURE__*/function () {
           }
           return _context2.a(2, next());
         case 1:
-          if (!(req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/sitemap'))) {
+          if (!(req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/sitemap') || req.path.startsWith('/radio'))) {
             _context2.n = 2;
             break;
           }
@@ -182,7 +198,7 @@ app.get('/health', function (req, res) {
   });
 });
 app.get('/', function (req, res) {
-  return res.send("<h1>VoxDiario API v2 Running</h1><ul><li><a href=\"/health\">Health</a></li><li><a href=\"/sitemap.xml\">/sitemap.xml</a></li><li><a href=\"/sitemap-news.xml\">/sitemap-news.xml</a></li></ul>");
+  return res.send("<h1>VoxDiario API v2 Running</h1>");
 });
 app.use('/', _sitemapRoutes["default"]);
 app.use('/api/posts', _postRoutes["default"]);
@@ -203,8 +219,7 @@ app.use('/api/v2/boletin', _boletinRoutes["default"]);
 app.use(function (req, res) {
   return res.status(404).json({
     status: 404,
-    message: 'Ruta no encontrada',
-    path: req.originalUrl
+    message: 'Ruta no encontrada'
   });
 });
 app.use(function (err, req, res, next) {
