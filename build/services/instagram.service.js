@@ -182,84 +182,105 @@ var updateIG = exports.updateIG = /*#__PURE__*/function () {
 var deleteIG = exports.deleteIG = /*#__PURE__*/function () {
   var _ref4 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(id) {
     var _yield$Instagram$find;
-    var token, igId, targetId, del, j, _t2, _t3, _t4, _t5;
+    var token, targetId, del, j, _t2, _t3, _t4, _t5, _t6, _t7;
     return _regenerator().w(function (_context4) {
-      while (1) switch (_context4.n) {
+      while (1) switch (_context4.p = _context4.n) {
         case 0:
           _context4.n = 1;
           return getToken();
         case 1:
           token = _context4.v;
-          // Si me pasás un ID de IG (como 18081176357709020) lo borro directo de IG
-          igId = _mongoose["default"].Types.ObjectId.isValid(id) ? null : id;
-          _t2 = igId;
-          if (_t2) {
-            _context4.n = 6;
+          if (!_mongoose["default"].Types.ObjectId.isValid(id)) {
+            _context4.n = 7;
             break;
           }
           _context4.n = 2;
           return _InstagramModel["default"].findById(id);
         case 2:
-          _t4 = _yield$Instagram$find = _context4.v;
-          _t3 = _t4 === null;
-          if (_t3) {
+          _t5 = _yield$Instagram$find = _context4.v;
+          _t4 = _t5 === null;
+          if (_t4) {
             _context4.n = 3;
             break;
           }
-          _t3 = _yield$Instagram$find === void 0;
+          _t4 = _yield$Instagram$find === void 0;
         case 3:
-          if (!_t3) {
+          if (!_t4) {
             _context4.n = 4;
             break;
           }
-          _t5 = void 0;
+          _t6 = void 0;
           _context4.n = 5;
           break;
         case 4:
-          _t5 = _yield$Instagram$find.igMediaId;
+          _t6 = _yield$Instagram$find.igMediaId;
         case 5:
-          _t2 = _t5;
-        case 6:
-          targetId = _t2;
-          if (!targetId) {
-            _context4.n = 9;
+          _t3 = _t6;
+          if (_t3) {
+            _context4.n = 6;
             break;
           }
-          _context4.n = 7;
+          _t3 = id;
+        case 6:
+          _t2 = _t3;
+          _context4.n = 8;
+          break;
+        case 7:
+          _t2 = id;
+        case 8:
+          targetId = _t2;
+          console.log('[IG DELETE] Intentando borrar', targetId);
+          if (!(targetId && !String(targetId).startsWith('error_'))) {
+            _context4.n = 14;
+            break;
+          }
+          _context4.p = 9;
+          _context4.n = 10;
           return fetch("https://graph.facebook.com/v18.0/".concat(targetId, "?access_token=").concat(token), {
             method: 'DELETE'
           });
-        case 7:
+        case 10:
           del = _context4.v;
-          _context4.n = 8;
-          return del.json()["catch"](function () {
-            return {};
-          });
-        case 8:
+          _context4.n = 11;
+          return del.json();
+        case 11:
           j = _context4.v;
-          console.log('[IG DELETE]', targetId, j);
-        case 9:
-          if (!_mongoose["default"].Types.ObjectId.isValid(id)) {
-            _context4.n = 11;
+          console.log('[IG DELETE RESP]', j);
+          if (!j.error) {
+            _context4.n = 12;
             break;
           }
-          _context4.n = 10;
-          return _InstagramModel["default"].findByIdAndDelete(id);
-        case 10:
-          _context4.n = 12;
+          throw new Error(j.error.message);
+        case 12:
+          _context4.n = 14;
           break;
-        case 11:
-          _context4.n = 12;
+        case 13:
+          _context4.p = 13;
+          _t7 = _context4.v;
+          console.error('[IG DELETE ERROR]', _t7.message);
+          throw new Error('No se pudo borrar de IG: ' + _t7.message);
+        case 14:
+          if (!_mongoose["default"].Types.ObjectId.isValid(id)) {
+            _context4.n = 16;
+            break;
+          }
+          _context4.n = 15;
+          return _InstagramModel["default"].findByIdAndDelete(id);
+        case 15:
+          _context4.n = 17;
+          break;
+        case 16:
+          _context4.n = 17;
           return _InstagramModel["default"].deleteOne({
             igMediaId: id
           });
-        case 12:
+        case 17:
           return _context4.a(2, {
             _id: id,
             deleted: true
           });
       }
-    }, _callee4);
+    }, _callee4, null, [[9, 13]]);
   }));
   return function deleteIG(_x4) {
     return _ref4.apply(this, arguments);

@@ -62,23 +62,30 @@ export const updateIG = async (id, body) => {
 
 export const deleteIG = async (id) => {
   const token = await getToken();
-  
-  // Si me pasás un ID de IG (como 18081176357709020) lo borro directo de IG
-  const igId = mongoose.Types.ObjectId.isValid(id) ? null : id;
-  const targetId = igId || (await Instagram.findById(id))?.igMediaId;
+  const targetId = mongoose.Types.ObjectId.isValid(id) 
+    ? (await Instagram.findById(id))?.igMediaId || id 
+    : id;
 
-  if(targetId){
-    const del = await fetch(`https://graph.facebook.com/v18.0/${targetId}?access_token=${token}`, { method: 'DELETE' });
-    const j = await del.json().catch(()=>({}));
-    console.log('[IG DELETE]', targetId, j);
+  console.log('[IG DELETE] Intentando borrar', targetId);
+
+  if(targetId && !String(targetId).startsWith('error_')){
+    try{
+      const del = await fetch(`https://graph.facebook.com/v18.0/${targetId}?access_token=${token}`, { method: 'DELETE' });
+      const j = await del.json();
+      console.log('[IG DELETE RESP]', j);
+      if(j.error) throw new Error(j.error.message);
+    }catch(e){
+      console.error('[IG DELETE ERROR]', e.message);
+      throw new Error('No se pudo borrar de IG: ' + e.message);
+    }
   }
-  
+
+  // borra de tu Mongo también
   if(mongoose.Types.ObjectId.isValid(id)){
     await Instagram.findByIdAndDelete(id);
   } else {
     await Instagram.deleteOne({ igMediaId: id });
   }
-  
   return { _id: id, deleted: true };
 };
 
