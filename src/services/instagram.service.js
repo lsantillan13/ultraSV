@@ -1,42 +1,7 @@
-import axios from 'axios';
+import * as svc from '../services/instagram.service.js';
 
-const IG_USER_ID = process.env.INSTAGRAM_USER_ID;
-const ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN;
-const GRAPH_URL = 'https://graph.facebook.com/v21.0';
-
-export async function publishToIG({ mediaUrl, caption }) {
-  // Si no tenes .env, devuelve mock para que no te frene el dev
-  if (!IG_USER_ID || !ACCESS_TOKEN) {
-    console.log('[IG Service] MODO MOCK - faltan env vars');
-    return {
-      mock: true,
-      id: 'mock_' + Date.now(),
-      permalink: 'https://instagram.com/mock'
-    };
-  }
-
-  // 1. Crear contenedor
-  const containerRes = await axios.post(`${GRAPH_URL}/${IG_USER_ID}/media`, {
-    image_url: mediaUrl,
-    caption: caption,
-    access_token: ACCESS_TOKEN
-  });
-
-  const creationId = containerRes.data.id;
-  console.log('[IG] Contenedor creado:', creationId);
-
-  // Esperar que IG procese la imagen (2 seg)
-  await new Promise(r => setTimeout(r, 2000));
-
-  // 2. Publicar contenedor
-  const publishRes = await axios.post(`${GRAPH_URL}/${IG_USER_ID}/media_publish`, {
-    creation_id: creationId,
-    access_token: ACCESS_TOKEN
-  });
-
-  return {
-    mock: false,
-    id: publishRes.data.id,
-    permalink: null
-  };
-}
+export const list = async (req,res) => { try{ res.json(await svc.listIG()); }catch(e){ res.status(500).json({ok:false,error:e.message}) } };
+export const getOne = async (req,res) => { try{ const doc = await svc.getIG(req.params.id); if(!doc) return res.status(404).json({ok:false, message:'No encontrado'}); res.json(doc); }catch(e){ res.status(500).json({ok:false,error:e.message}) } };
+export const publish = async (req,res) => { try{ const r = await svc.publishIG(req.body); res.json(r); }catch(e){ res.status(500).json({ok:false,error:e.message}) } };
+export const update = async (req,res) => { try{ const doc = await svc.updateIG(req.params.id, req.body); res.json({ok:true, data:[STRIPPED] }catch(e){ res.status(500).json({ok:false,error:e.message}) } };
+export const remove = async (req,res) => { try{ const doc = await svc.deleteIG(req.params.id); res.json({ok:true, deleted:doc._id}); }catch(e){ res.status(500).json({ok:false,error:e.message}) } };

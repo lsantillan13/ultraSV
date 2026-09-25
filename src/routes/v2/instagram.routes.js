@@ -1,12 +1,11 @@
 import { Router } from 'express';
-import { publishController, listController } from '../../controllers/instagram.controllers.js';
-
+import * as ctrl from '../controllers/instagram.controller.js';
 const router = Router();
 
-// GET /api/v2/instagram -> historial
-router.get('/', listController);
-
-// POST /api/v2/instagram/publish -> publicar
-router.post('/publish', publishController);
+router.get('/', ctrl.list);
+router.get('/:id', ctrl.getOne);
+router.post('/publish', ctrl.publish);
+router.put('/:id', ctrl.update);
+router.delete('/:id', ctrl.remove);
 
 export default router;

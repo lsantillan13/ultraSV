@@ -17,29 +17,26 @@ var InstagramSchema = new _mongoose["default"].Schema({
   },
   type: {
     type: String,
-    "enum": ['solo_ig', 'teaser_web'],
     "default": 'solo_ig'
   },
   status: {
     type: String,
-    "enum": ['pending', 'published', 'failed', 'mock'],
-    "default": 'pending'
+    "enum": ['mock', 'published', 'error', 'deleted'],
+    "default": 'mock'
   },
   igMediaId: {
-    type: String
+    type: String,
+    "default": null
   },
   permalink: {
-    type: String
-  },
-  error: {
-    type: String
+    type: String,
+    "default": null
   },
   entryRef: {
-    type: _mongoose["default"].Schema.Types.ObjectId,
-    ref: 'Entry',
+    type: String,
     "default": null
   }
 }, {
   timestamps: true
 });
-var _default = exports["default"] = _mongoose["default"].model('InstagramPost', InstagramSchema);
+var _default = exports["default"] = _mongoose["default"].model('Instagram', InstagramSchema);
