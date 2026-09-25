@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.publishIG = exports.listIG = exports.deleteIG = void 0;
+exports.updateIG = exports.publishIG = exports.listIG = exports.getIG = exports.deleteIG = void 0;
 var _InstagramModel = _interopRequireDefault(require("../models/Instagram.model.js"));
 var _mongoose = _interopRequireDefault(require("mongoose"));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default": e }; }
@@ -24,20 +24,20 @@ function getToken() {
   return _getToken.apply(this, arguments);
 }
 function _getToken() {
-  _getToken = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
+  _getToken = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
     var cfg;
-    return _regenerator().w(function (_context3) {
-      while (1) switch (_context3.n) {
+    return _regenerator().w(function (_context6) {
+      while (1) switch (_context6.n) {
         case 0:
-          _context3.n = 1;
+          _context6.n = 1;
           return Config.findOne({
             key: 'IG_ACCESS_TOKEN'
           });
         case 1:
-          cfg = _context3.v;
-          return _context3.a(2, (cfg === null || cfg === void 0 ? void 0 : cfg.value) || process.env.IG_ACCESS_TOKEN);
+          cfg = _context6.v;
+          return _context6.a(2, (cfg === null || cfg === void 0 ? void 0 : cfg.value) || process.env.IG_ACCESS_TOKEN);
       }
-    }, _callee3);
+    }, _callee6);
   }));
   return _getToken.apply(this, arguments);
 }
@@ -59,82 +59,170 @@ function buildFramedImageUrl(mediaUrl) {
     H = 1920;
     frameUrl = process.env.VOX_FRAME_STORY || process.env.VOX_FRAME_1080x1920_STORY;
   }
-
-  // Fallback a tu cloud si no hay ENV
   if (!frameUrl) {
     frameUrl = "https://res.cloudinary.com/".concat(CLOUD, "/image/upload/VOX_FRAME_1080x").concat(frameType === 'feed' ? '1080' : frameType === 'story' ? '1920_STORY' : '1350', "_FEED.png");
   }
   var b64Frame = toB64(frameUrl);
   var encodedMedia = encodeURIComponent(mediaUrl);
-
-  // Esta URL se puede abrir en el navegador para probar
   return "https://res.cloudinary.com/".concat(CLOUD, "/image/fetch/c_fill,w_").concat(W, ",h_").concat(H, ",g_auto,q_auto:good,f_jpg/l_fetch:").concat(b64Frame, ",w_").concat(W, ",h_").concat(H, ",c_fill,g_center/fl_layer_apply,q_auto:good,f_jpg/").concat(encodedMedia);
 }
-var listIG = exports.listIG = function listIG() {
-  return _InstagramModel["default"].find().sort({
-    createdAt: -1
-  }).limit(50);
-};
-var deleteIG = exports.deleteIG = /*#__PURE__*/function () {
-  var _ref = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(id) {
-    var doc, token, _t;
+
+// --- ESTOS TE FALTABAN ---
+
+var listIG = exports.listIG = /*#__PURE__*/function () {
+  var _ref = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee() {
     return _regenerator().w(function (_context) {
-      while (1) switch (_context.p = _context.n) {
+      while (1) switch (_context.n) {
         case 0:
           _context.n = 1;
-          return _InstagramModel["default"].findById(id);
+          return _InstagramModel["default"].find().sort({
+            createdAt: -1
+          }).limit(50).lean();
         case 1:
-          doc = _context.v;
-          if (doc) {
-            _context.n = 2;
-            break;
-          }
-          throw new Error('No encontrado');
-        case 2:
-          _context.n = 3;
-          return getToken();
-        case 3:
-          token = _context.v;
-          if (!(doc.status === 'published' && doc.igMediaId && !doc.igMediaId.startsWith('error_'))) {
-            _context.n = 7;
-            break;
-          }
-          _context.p = 4;
-          _context.n = 5;
-          return fetch("https://graph.facebook.com/v18.0/".concat(doc.igMediaId, "?access_token=").concat(token), {
-            method: 'DELETE'
-          });
-        case 5:
-          _context.n = 7;
-          break;
-        case 6:
-          _context.p = 6;
-          _t = _context.v;
-        case 7:
-          _context.n = 8;
-          return _InstagramModel["default"].findByIdAndDelete(id);
-        case 8:
-          return _context.a(2, doc);
+          return _context.a(2, _context.v);
       }
-    }, _callee, null, [[4, 6]]);
+    }, _callee);
   }));
-  return function deleteIG(_x) {
+  return function listIG() {
     return _ref.apply(this, arguments);
   };
 }();
-var publishIG = exports.publishIG = /*#__PURE__*/function () {
-  var _ref3 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(_ref2) {
-    var mediaUrl, caption, _ref2$type, type, entryRef, token, finalUrl, status, igMediaId, permalink, errorMsg, createRes, createJson, pubRes, pubJson, doc, _t2;
+var getIG = exports.getIG = /*#__PURE__*/function () {
+  var _ref2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(id) {
+    var doc;
     return _regenerator().w(function (_context2) {
-      while (1) switch (_context2.p = _context2.n) {
+      while (1) switch (_context2.n) {
         case 0:
-          mediaUrl = _ref2.mediaUrl, caption = _ref2.caption, _ref2$type = _ref2.type, type = _ref2$type === void 0 ? 'feed_1350' : _ref2$type, entryRef = _ref2.entryRef;
-          _context2.n = 1;
+          if (_mongoose["default"].Types.ObjectId.isValid(id)) {
+            _context2.n = 1;
+            break;
+          }
+          throw new Error('ID invalido');
+        case 1:
+          _context2.n = 2;
+          return _InstagramModel["default"].findById(id).lean();
+        case 2:
+          doc = _context2.v;
+          if (doc) {
+            _context2.n = 3;
+            break;
+          }
+          throw new Error('No encontrado');
+        case 3:
+          return _context2.a(2, doc);
+      }
+    }, _callee2);
+  }));
+  return function getIG(_x) {
+    return _ref2.apply(this, arguments);
+  };
+}();
+var updateIG = exports.updateIG = /*#__PURE__*/function () {
+  var _ref3 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(id, body) {
+    var media, type, updated;
+    return _regenerator().w(function (_context3) {
+      while (1) switch (_context3.n) {
+        case 0:
+          if (_mongoose["default"].Types.ObjectId.isValid(id)) {
+            _context3.n = 1;
+            break;
+          }
+          throw new Error('ID invalido');
+        case 1:
+          // Si cambian la imagen, regenera el frame
+          if (body.mediaUrl || body.originalMediaUrl) {
+            media = body.originalMediaUrl || body.mediaUrl;
+            type = body.type || 'feed_1350';
+            body.mediaUrl = buildFramedImageUrl(media, type);
+            body.originalMediaUrl = media;
+          }
+          _context3.n = 2;
+          return _InstagramModel["default"].findByIdAndUpdate(id, body, {
+            "new": true
+          });
+        case 2:
+          updated = _context3.v;
+          if (updated) {
+            _context3.n = 3;
+            break;
+          }
+          throw new Error('No encontrado para editar');
+        case 3:
+          return _context3.a(2, updated);
+      }
+    }, _callee3);
+  }));
+  return function updateIG(_x2, _x3) {
+    return _ref3.apply(this, arguments);
+  };
+}();
+var deleteIG = exports.deleteIG = /*#__PURE__*/function () {
+  var _ref4 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(id) {
+    var doc, token, _t;
+    return _regenerator().w(function (_context4) {
+      while (1) switch (_context4.p = _context4.n) {
+        case 0:
+          if (_mongoose["default"].Types.ObjectId.isValid(id)) {
+            _context4.n = 1;
+            break;
+          }
+          throw new Error('ID invalido');
+        case 1:
+          _context4.n = 2;
+          return _InstagramModel["default"].findById(id);
+        case 2:
+          doc = _context4.v;
+          if (doc) {
+            _context4.n = 3;
+            break;
+          }
+          throw new Error('No encontrado');
+        case 3:
+          _context4.n = 4;
+          return getToken();
+        case 4:
+          token = _context4.v;
+          if (!(doc.status === 'published' && doc.igMediaId && !doc.igMediaId.startsWith('error_'))) {
+            _context4.n = 8;
+            break;
+          }
+          _context4.p = 5;
+          _context4.n = 6;
+          return fetch("https://graph.facebook.com/v18.0/".concat(doc.igMediaId, "?access_token=").concat(token), {
+            method: 'DELETE'
+          });
+        case 6:
+          _context4.n = 8;
+          break;
+        case 7:
+          _context4.p = 7;
+          _t = _context4.v;
+          console.log('[IG] No se pudo borrar de IG:', _t.message);
+        case 8:
+          _context4.n = 9;
+          return _InstagramModel["default"].findByIdAndDelete(id);
+        case 9:
+          return _context4.a(2, doc);
+      }
+    }, _callee4, null, [[5, 7]]);
+  }));
+  return function deleteIG(_x4) {
+    return _ref4.apply(this, arguments);
+  };
+}();
+var publishIG = exports.publishIG = /*#__PURE__*/function () {
+  var _ref6 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(_ref5) {
+    var mediaUrl, caption, _ref5$type, type, entryRef, token, finalUrl, status, igMediaId, permalink, errorMsg, createRes, createJson, pubRes, pubJson, doc, _t2;
+    return _regenerator().w(function (_context5) {
+      while (1) switch (_context5.p = _context5.n) {
+        case 0:
+          mediaUrl = _ref5.mediaUrl, caption = _ref5.caption, _ref5$type = _ref5.type, type = _ref5$type === void 0 ? 'feed_1350' : _ref5$type, entryRef = _ref5.entryRef;
+          _context5.n = 1;
           return getToken();
         case 1:
-          token = _context2.v;
+          token = _context5.v;
           if (!(!IG_USER_ID || !token)) {
-            _context2.n = 2;
+            _context5.n = 2;
             break;
           }
           throw new Error('Falta IG_USER_ID o IG_ACCESS_TOKEN');
@@ -142,8 +230,8 @@ var publishIG = exports.publishIG = /*#__PURE__*/function () {
           finalUrl = buildFramedImageUrl(mediaUrl, type);
           console.log('[IG] FINAL URL:', finalUrl);
           status = 'error', igMediaId = "error_".concat(Date.now()), permalink = '', errorMsg = null;
-          _context2.p = 3;
-          _context2.n = 4;
+          _context5.p = 3;
+          _context5.n = 4;
           return fetch("https://graph.facebook.com/v18.0/".concat(IG_USER_ID, "/media"), {
             method: 'POST',
             headers: {
@@ -156,24 +244,24 @@ var publishIG = exports.publishIG = /*#__PURE__*/function () {
             })
           });
         case 4:
-          createRes = _context2.v;
-          _context2.n = 5;
+          createRes = _context5.v;
+          _context5.n = 5;
           return createRes.json();
         case 5:
-          createJson = _context2.v;
+          createJson = _context5.v;
           console.log('[IG] CREATE:', createJson);
           if (createJson.id) {
-            _context2.n = 6;
+            _context5.n = 6;
             break;
           }
           throw new Error("CREATE FAIL: ".concat(JSON.stringify(createJson)));
         case 6:
-          _context2.n = 7;
+          _context5.n = 7;
           return new Promise(function (r) {
             return setTimeout(r, 5000);
           });
         case 7:
-          _context2.n = 8;
+          _context5.n = 8;
           return fetch("https://graph.facebook.com/v18.0/".concat(IG_USER_ID, "/media_publish"), {
             method: 'POST',
             headers: {
@@ -185,14 +273,14 @@ var publishIG = exports.publishIG = /*#__PURE__*/function () {
             })
           });
         case 8:
-          pubRes = _context2.v;
-          _context2.n = 9;
+          pubRes = _context5.v;
+          _context5.n = 9;
           return pubRes.json();
         case 9:
-          pubJson = _context2.v;
+          pubJson = _context5.v;
           console.log('[IG] PUBLISH:', pubJson);
           if (pubJson.id) {
-            _context2.n = 10;
+            _context5.n = 10;
             break;
           }
           throw new Error("PUBLISH FAIL: ".concat(JSON.stringify(pubJson)));
@@ -200,15 +288,15 @@ var publishIG = exports.publishIG = /*#__PURE__*/function () {
           status = 'published';
           igMediaId = pubJson.id;
           permalink = "https://www.instagram.com/p/".concat(pubJson.id, "/");
-          _context2.n = 12;
+          _context5.n = 12;
           break;
         case 11:
-          _context2.p = 11;
-          _t2 = _context2.v;
+          _context5.p = 11;
+          _t2 = _context5.v;
           errorMsg = _t2.message;
           console.error('[IG] ERROR:', errorMsg);
         case 12:
-          _context2.n = 13;
+          _context5.n = 13;
           return _InstagramModel["default"].create({
             mediaUrl: finalUrl,
             originalMediaUrl: mediaUrl,
@@ -221,22 +309,22 @@ var publishIG = exports.publishIG = /*#__PURE__*/function () {
             error: errorMsg
           });
         case 13:
-          doc = _context2.v;
+          doc = _context5.v;
           if (!(status === 'error')) {
-            _context2.n = 14;
+            _context5.n = 14;
             break;
           }
           throw new Error(errorMsg);
         case 14:
-          return _context2.a(2, {
+          return _context5.a(2, {
             ok: true,
             data: doc,
             finalUrl: finalUrl
           });
       }
-    }, _callee2, null, [[3, 11]]);
+    }, _callee5, null, [[3, 11]]);
   }));
-  return function publishIG(_x2) {
-    return _ref3.apply(this, arguments);
+  return function publishIG(_x5) {
+    return _ref6.apply(this, arguments);
   };
 }();

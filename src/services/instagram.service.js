@@ -29,28 +29,57 @@ function buildFramedImageUrl(mediaUrl, frameType = 'feed_1350'){
     frameUrl = process.env.VOX_FRAME_STORY || process.env.VOX_FRAME_1080x1920_STORY;
   }
 
-  // Fallback a tu cloud si no hay ENV
   if(!frameUrl){
     frameUrl = `https://res.cloudinary.com/${CLOUD}/image/upload/VOX_FRAME_1080x${frameType==='feed'?'1080': frameType==='story'?'1920_STORY':'1350'}_FEED.png`;
   }
 
   const b64Frame = toB64(frameUrl);
   const encodedMedia = encodeURIComponent(mediaUrl);
-
-  // Esta URL se puede abrir en el navegador para probar
   return `https://res.cloudinary.com/${CLOUD}/image/fetch/c_fill,w_${W},h_${H},g_auto,q_auto:good,f_jpg/l_fetch:${b64Frame},w_${W},h_${H},c_fill,g_center/fl_layer_apply,q_auto:good,f_jpg/${encodedMedia}`;
 }
 
-export const listIG = () => Instagram.find().sort({ createdAt: -1 }).limit(50);
+// --- ESTOS TE FALTABAN ---
+
+export const listIG = async () => {
+  return await Instagram.find().sort({ createdAt: -1 }).limit(50).lean();
+};
+
+export const getIG = async (id) => {
+  if(!mongoose.Types.ObjectId.isValid(id)) throw new Error('ID invalido');
+  const doc = await Instagram.findById(id).lean();
+  if(!doc) throw new Error('No encontrado');
+  return doc;
+};
+
+export const updateIG = async (id, body) => {
+  if(!mongoose.Types.ObjectId.isValid(id)) throw new Error('ID invalido');
+  
+  // Si cambian la imagen, regenera el frame
+  if(body.mediaUrl || body.originalMediaUrl){
+    const media = body.originalMediaUrl || body.mediaUrl;
+    const type = body.type || 'feed_1350';
+    body.mediaUrl = buildFramedImageUrl(media, type);
+    body.originalMediaUrl = media;
+  }
+
+  const updated = await Instagram.findByIdAndUpdate(id, body, { new: true });
+  if(!updated) throw new Error('No encontrado para editar');
+  return updated;
+};
 
 export const deleteIG = async (id) => {
+  if(!mongoose.Types.ObjectId.isValid(id)) throw new Error('ID invalido');
   const doc = await Instagram.findById(id);
   if(!doc) throw new Error('No encontrado');
+  
   const token = await getToken();
-  if(doc.status==='published' && doc.igMediaId &&!doc.igMediaId.startsWith('error_')){
+  // Si ya estaba publicado en IG, intenta borrarlo de IG también
+  if(doc.status==='published' && doc.igMediaId && !doc.igMediaId.startsWith('error_')){
     try{
       await fetch(`https://graph.facebook.com/v18.0/${doc.igMediaId}?access_token=${token}`, { method:'DELETE' });
-    }catch{}
+    }catch(e){
+      console.log('[IG] No se pudo borrar de IG:', e.message);
+    }
   }
   await Instagram.findByIdAndDelete(id);
   return doc;
@@ -58,7 +87,7 @@ export const deleteIG = async (id) => {
 
 export const publishIG = async ({ mediaUrl, caption, type = 'feed_1350', entryRef }) => {
   const token = await getToken();
-  if(!IG_USER_ID ||!token) throw new Error('Falta IG_USER_ID o IG_ACCESS_TOKEN');
+  if(!IG_USER_ID || !token) throw new Error('Falta IG_USER_ID o IG_ACCESS_TOKEN');
 
   const finalUrl = buildFramedImageUrl(mediaUrl, type);
   console.log('[IG] FINAL URL:', finalUrl);
