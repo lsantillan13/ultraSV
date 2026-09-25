@@ -1,7 +1,39 @@
-import * as svc from '../services/instagram.service.js';
+import Instagram from '../models/Instagram.model.js';
 
-export const list = async (req,res) => { try{ res.json(await svc.listIG()); }catch(e){ res.status(500).json({ok:false,error:e.message}) } };
-export const getOne = async (req,res) => { try{ const doc = await svc.getIG(req.params.id); if(!doc) return res.status(404).json({ok:false, message:'No encontrado'}); res.json(doc); }catch(e){ res.status(500).json({ok:false,error:e.message}) } };
-export const publish = async (req,res) => { try{ const r = await svc.publishIG(req.body); res.json(r); }catch(e){ res.status(500).json({ok:false,error:e.message}) } };
-export const update = async (req,res) => { try{ const doc = await svc.updateIG(req.params.id, req.body); res.json({ok:true, data:[STRIPPED] }catch(e){ res.status(500).json({ok:false,error:e.message}) } };
-export const remove = async (req,res) => { try{ const doc = await svc.deleteIG(req.params.id); res.json({ok:true, deleted:doc._id}); }catch(e){ res.status(500).json({ok:false,error:e.message}) } };
+const IG_USER_ID = process.env.INSTAGRAM_USER_ID;
+const IG_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN;
+
+export const listIG = () => Instagram.find().sort({ createdAt: -1 }).limit(50);
+export const getIG = (id) => Instagram.findById(id);
+export const deleteIG = async (id) => {
+  const doc = await Instagram.findById(id);
+  if(!doc) throw new Error('No encontrado');
+  await Instagram.findByIdAndDelete(id);
+  return doc;
+};
+export const updateIG = (id, data) => Instagram.findByIdAndUpdate(id, data, { new: true });
+
+export const publishIG = async ({ mediaUrl, caption, type, entryRef }) => {
+  let status = 'mock', igMediaId = `mock_${Date.now()}`, permalink = 'https://instagram.com/mock';
+  if(IG_USER_ID && IG_TOKEN){
+    try {
+      const createRes = await fetch(`https://graph.facebook.com/v18.0/${IG_USER_ID}/media`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_url: mediaUrl, caption, access_token: IG_TOKEN })
+      });
+      const createJson = await createRes.json();
+      if(!createJson.id) throw new Error(JSON.stringify(createJson));
+      const pubRes = await fetch(`https://graph.facebook.com/v18.0/${IG_USER_ID}/media_publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ creation_id: createJson.id, access_token: IG_TOKEN })
+      });
+      const pubJson = await pubRes.json();
+      if(!pubJson.id) throw new Error(JSON.stringify(pubJson));
+      status = 'published'; igMediaId = pubJson.id; permalink = `https://instagram.com/p/${pubJson.id}`;
+    } catch(e){ console.error('IG REAL ERROR:', e.message); status = 'error'; igMediaId = `error_${Date.now()}`; }
+  }
+  const doc = await Instagram.create({ mediaUrl, caption, type, entryRef, status, igMediaId, permalink });
+  return { ok: true, data: doc, status };
+};

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import * as ctrl from '../controllers/instagram.controller.js';
+import * as ctrl from '../../controllers/instagram.controllers.js';
 const router = Router();
 
 router.get('/', ctrl.list);
