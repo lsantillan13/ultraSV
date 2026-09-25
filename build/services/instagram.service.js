@@ -20,104 +20,130 @@ var ConfigSchema = new _mongoose["default"].Schema({
   timestamps: true
 });
 var Config = _mongoose["default"].models.Config || _mongoose["default"].model('Config', ConfigSchema);
-var FRAMES = {
-  feed_1350: 'VOX_FRAME_1080x1350_FEED',
-  feed: 'VOX_FRAME_1080x1080_FEED',
-  story: 'VOX_FRAME_1080x1920_STORY'
-};
 function getToken() {
   return _getToken.apply(this, arguments);
 }
 function _getToken() {
-  _getToken = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
+  _getToken = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
     var cfg;
-    return _regenerator().w(function (_context2) {
-      while (1) switch (_context2.n) {
+    return _regenerator().w(function (_context3) {
+      while (1) switch (_context3.n) {
         case 0:
-          _context2.n = 1;
+          _context3.n = 1;
           return Config.findOne({
             key: 'IG_ACCESS_TOKEN'
           });
         case 1:
-          cfg = _context2.v;
-          return _context2.a(2, (cfg === null || cfg === void 0 ? void 0 : cfg.value) || process.env.IG_ACCESS_TOKEN);
+          cfg = _context3.v;
+          return _context3.a(2, (cfg === null || cfg === void 0 ? void 0 : cfg.value) || process.env.IG_ACCESS_TOKEN);
       }
-    }, _callee2);
+    }, _callee3);
   }));
   return _getToken.apply(this, arguments);
 }
+function toB64(url) {
+  return Buffer.from(url).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
 function buildFramedImageUrl(mediaUrl) {
   var frameType = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'feed_1350';
-  var frameId = FRAMES[frameType] || FRAMES.feed_1350;
   var W = 1080,
     H = 1350;
+  var frameUrl = process.env.VOX_FRAME_FEED_1350 || process.env.VOX_FRAME_1080x1350_FEED;
   if (frameType === 'feed') {
     W = 1080;
     H = 1080;
+    frameUrl = process.env.VOX_FRAME_FEED || process.env.VOX_FRAME_1080x1080_FEED;
   }
   if (frameType === 'story') {
     W = 1080;
     H = 1920;
+    frameUrl = process.env.VOX_FRAME_STORY || process.env.VOX_FRAME_1080x1920_STORY;
   }
 
-  // URL CORRECTA PARA TU CLOUD ihytdbtw - probala en el navegador
-  var encoded = encodeURIComponent(mediaUrl);
-  // fetch de la foto de la nota + overlay del frame PNG
-  return "https://res.cloudinary.com/".concat(CLOUD, "/image/fetch/c_fill,w_").concat(W, ",h_").concat(H, ",g_auto,q_auto:good,f_jpg/l_").concat(frameId, ",w_").concat(W, ",h_").concat(H, ",c_fill,g_center/fl_layer_apply,q_auto:good,f_jpg/").concat(encoded);
+  // Fallback a tu cloud si no hay ENV
+  if (!frameUrl) {
+    frameUrl = "https://res.cloudinary.com/".concat(CLOUD, "/image/upload/VOX_FRAME_1080x").concat(frameType === 'feed' ? '1080' : frameType === 'story' ? '1920_STORY' : '1350', "_FEED.png");
+  }
+  var b64Frame = toB64(frameUrl);
+  var encodedMedia = encodeURIComponent(mediaUrl);
+
+  // Esta URL se puede abrir en el navegador para probar
+  return "https://res.cloudinary.com/".concat(CLOUD, "/image/fetch/c_fill,w_").concat(W, ",h_").concat(H, ",g_auto,q_auto:good,f_jpg/l_fetch:").concat(b64Frame, ",w_").concat(W, ",h_").concat(H, ",c_fill,g_center/fl_layer_apply,q_auto:good,f_jpg/").concat(encodedMedia);
 }
 var listIG = exports.listIG = function listIG() {
   return _InstagramModel["default"].find().sort({
     createdAt: -1
   }).limit(50);
 };
-var deleteIG = exports.deleteIG = function deleteIG(id) {
-  return _InstagramModel["default"].findByIdAndDelete(id);
-};
-var publishIG = exports.publishIG = /*#__PURE__*/function () {
-  var _ref2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(_ref) {
-    var mediaUrl, caption, _ref$type, type, entryRef, token, finalUrl, test, status, igMediaId, permalink, errorMsg, createRes, createJson, pubRes, pubJson, doc, _t, _t2;
+var deleteIG = exports.deleteIG = /*#__PURE__*/function () {
+  var _ref = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(id) {
+    var doc, token, _t;
     return _regenerator().w(function (_context) {
       while (1) switch (_context.p = _context.n) {
         case 0:
-          mediaUrl = _ref.mediaUrl, caption = _ref.caption, _ref$type = _ref.type, type = _ref$type === void 0 ? 'feed_1350' : _ref$type, entryRef = _ref.entryRef;
           _context.n = 1;
-          return getToken();
+          return _InstagramModel["default"].findById(id);
         case 1:
-          token = _context.v;
-          if (!(!IG_USER_ID || !token)) {
+          doc = _context.v;
+          if (doc) {
             _context.n = 2;
             break;
           }
-          throw new Error('Falta IG_USER_ID o TOKEN en Koyeb');
+          throw new Error('No encontrado');
         case 2:
-          finalUrl = buildFramedImageUrl(mediaUrl, type);
-          console.log('[IG] FINAL URL:', finalUrl);
-
-          // Testea que Cloudinary si devuelva imagen
-          _context.p = 3;
-          _context.n = 4;
-          return fetch(finalUrl, {
-            method: 'HEAD'
-          });
-        case 4:
-          test = _context.v;
-          console.log('[IG] Cloudinary status:', test.status, test.headers.get('content-type'));
-          if (test.ok) {
-            _context.n = 5;
+          _context.n = 3;
+          return getToken();
+        case 3:
+          token = _context.v;
+          if (!(doc.status === 'published' && doc.igMediaId && !doc.igMediaId.startsWith('error_'))) {
+            _context.n = 7;
             break;
           }
-          throw new Error("Cloudinary no devolvi\xF3 imagen: ".concat(test.status));
+          _context.p = 4;
+          _context.n = 5;
+          return fetch("https://graph.facebook.com/v18.0/".concat(doc.igMediaId, "?access_token=").concat(token), {
+            method: 'DELETE'
+          });
         case 5:
           _context.n = 7;
           break;
         case 6:
           _context.p = 6;
           _t = _context.v;
-          console.error('[IG] Error probando Cloudinary:', _t.message);
         case 7:
+          _context.n = 8;
+          return _InstagramModel["default"].findByIdAndDelete(id);
+        case 8:
+          return _context.a(2, doc);
+      }
+    }, _callee, null, [[4, 6]]);
+  }));
+  return function deleteIG(_x) {
+    return _ref.apply(this, arguments);
+  };
+}();
+var publishIG = exports.publishIG = /*#__PURE__*/function () {
+  var _ref3 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(_ref2) {
+    var mediaUrl, caption, _ref2$type, type, entryRef, token, finalUrl, status, igMediaId, permalink, errorMsg, createRes, createJson, pubRes, pubJson, doc, _t2;
+    return _regenerator().w(function (_context2) {
+      while (1) switch (_context2.p = _context2.n) {
+        case 0:
+          mediaUrl = _ref2.mediaUrl, caption = _ref2.caption, _ref2$type = _ref2.type, type = _ref2$type === void 0 ? 'feed_1350' : _ref2$type, entryRef = _ref2.entryRef;
+          _context2.n = 1;
+          return getToken();
+        case 1:
+          token = _context2.v;
+          if (!(!IG_USER_ID || !token)) {
+            _context2.n = 2;
+            break;
+          }
+          throw new Error('Falta IG_USER_ID o IG_ACCESS_TOKEN');
+        case 2:
+          finalUrl = buildFramedImageUrl(mediaUrl, type);
+          console.log('[IG] FINAL URL:', finalUrl);
           status = 'error', igMediaId = "error_".concat(Date.now()), permalink = '', errorMsg = null;
-          _context.p = 8;
-          _context.n = 9;
+          _context2.p = 3;
+          _context2.n = 4;
           return fetch("https://graph.facebook.com/v18.0/".concat(IG_USER_ID, "/media"), {
             method: 'POST',
             headers: {
@@ -129,25 +155,25 @@ var publishIG = exports.publishIG = /*#__PURE__*/function () {
               access_token: token
             })
           });
-        case 9:
-          createRes = _context.v;
-          _context.n = 10;
+        case 4:
+          createRes = _context2.v;
+          _context2.n = 5;
           return createRes.json();
-        case 10:
-          createJson = _context.v;
+        case 5:
+          createJson = _context2.v;
           console.log('[IG] CREATE:', createJson);
           if (createJson.id) {
-            _context.n = 11;
+            _context2.n = 6;
             break;
           }
           throw new Error("CREATE FAIL: ".concat(JSON.stringify(createJson)));
-        case 11:
-          _context.n = 12;
+        case 6:
+          _context2.n = 7;
           return new Promise(function (r) {
-            return setTimeout(r, 4000);
+            return setTimeout(r, 5000);
           });
-        case 12:
-          _context.n = 13;
+        case 7:
+          _context2.n = 8;
           return fetch("https://graph.facebook.com/v18.0/".concat(IG_USER_ID, "/media_publish"), {
             method: 'POST',
             headers: {
@@ -158,31 +184,31 @@ var publishIG = exports.publishIG = /*#__PURE__*/function () {
               access_token: token
             })
           });
-        case 13:
-          pubRes = _context.v;
-          _context.n = 14;
+        case 8:
+          pubRes = _context2.v;
+          _context2.n = 9;
           return pubRes.json();
-        case 14:
-          pubJson = _context.v;
+        case 9:
+          pubJson = _context2.v;
           console.log('[IG] PUBLISH:', pubJson);
           if (pubJson.id) {
-            _context.n = 15;
+            _context2.n = 10;
             break;
           }
           throw new Error("PUBLISH FAIL: ".concat(JSON.stringify(pubJson)));
-        case 15:
+        case 10:
           status = 'published';
           igMediaId = pubJson.id;
           permalink = "https://www.instagram.com/p/".concat(pubJson.id, "/");
-          _context.n = 17;
+          _context2.n = 12;
           break;
-        case 16:
-          _context.p = 16;
-          _t2 = _context.v;
+        case 11:
+          _context2.p = 11;
+          _t2 = _context2.v;
           errorMsg = _t2.message;
           console.error('[IG] ERROR:', errorMsg);
-        case 17:
-          _context.n = 18;
+        case 12:
+          _context2.n = 13;
           return _InstagramModel["default"].create({
             mediaUrl: finalUrl,
             originalMediaUrl: mediaUrl,
@@ -194,23 +220,23 @@ var publishIG = exports.publishIG = /*#__PURE__*/function () {
             permalink: permalink,
             error: errorMsg
           });
-        case 18:
-          doc = _context.v;
+        case 13:
+          doc = _context2.v;
           if (!(status === 'error')) {
-            _context.n = 19;
+            _context2.n = 14;
             break;
           }
           throw new Error(errorMsg);
-        case 19:
-          return _context.a(2, {
+        case 14:
+          return _context2.a(2, {
             ok: true,
             data: doc,
             finalUrl: finalUrl
           });
       }
-    }, _callee, null, [[8, 16], [3, 6]]);
+    }, _callee2, null, [[3, 11]]);
   }));
-  return function publishIG(_x) {
-    return _ref2.apply(this, arguments);
+  return function publishIG(_x2) {
+    return _ref3.apply(this, arguments);
   };
 }();
