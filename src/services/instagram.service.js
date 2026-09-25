@@ -38,47 +38,37 @@ async function refreshTokenIfNeeded(){
 
 // Esta es la que te arregla el 36003 y le pega el frame
 async function buildFramedImage(mediaUrl, frameType = 'feed_1350'){
-  const frameUrl = FRAMES[frameType] || FRAMES.feed_1350;
-  
-  // 1. Descargar foto noticia + frame
-  const [mediaRes, frameRes] = await Promise.all([fetch(mediaUrl), fetch(frameUrl)]);
-  const mediaBuffer = Buffer.from(await mediaRes.arrayBuffer());
-  const frameBuffer = Buffer.from(await frameRes.arrayBuffer());
+  try {
+    const CLOUD = process.env.CLOUDINARY_CLOUD_NAME || 'dq...'; // poné tu cloud name
+    // Public IDs de tus frames tal cual los tenés en cloudinary (sin.png)
+    const FRAME_IDS = {
+      story: 'VOX_FRAME_1080x1920_STORY',
+      feed: 'VOX_FRAME_1080x1080_FEED',
+      feed_1350: 'VOX_FRAME_1080x1350_FEED',
+    };
 
-  // 2. Definir tamaño final según frame
-  let finalW = 1080, finalH = 1350;
-  if(frameType === 'story') { finalW = 1080; finalH = 1920; }
-  if(frameType === 'feed') { finalW = 1080; finalH = 1080; }
+    const frameId = FRAME_IDS[frameType] || FRAME_IDS.feed_1350;
 
-  // 3. Redimensionar la foto de la noticia para que entre dentro del frame
-  // Dejamos un margen para que se vea el marco de Vox
-  const safeMargin = 80;
-  const contentW = finalW - safeMargin;
-  const contentH = finalH - 300; // dejamos espacio para logo/titulo del frame
+    let finalW = 1080, finalH = 1350;
+    if(frameType === 'story') { finalW = 1080; finalH = 1920; }
+    if(frameType === 'feed') { finalW = 1080; finalH = 1080; }
 
-  const resizedContent = await sharp(mediaBuffer)
-    .resize({ width: contentW, height: contentH, fit: 'cover', position: 'centre' })
-    .toBuffer();
+    // Transformación Cloudinary:
+    // 1. hace fetch de tu foto de la noticia y la recorta a 1080x1350
+    // 2. le pone encima tu frame PNG transparente
+    const encodedMedia = encodeURIComponent(mediaUrl);
+    const cloudinaryUrl = `https://res.cloudinary.com/${CLOUD}/image/fetch/w_${finalW},h_${finalH},c_fill,g_auto,q_auto:good/l_${frameId},w_${finalW},h_${finalH},c_fill,g_center/fl_layer_apply,fl_relative/q_auto:good,f_jpg/${encodedMedia}`;
 
-  // 4. Componer: primero el contenido, arriba el frame transparente
-  const finalImage = await sharp({
-    create: { width: finalW, height: finalH, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } }
-  })
-  .composite([
-    { input: resizedContent, top: Math.round((finalH - contentH)/2 - 50), left: Math.round((finalW - contentW)/2) },
-    { input: await sharp(frameBuffer).resize(finalW, finalH).toBuffer(), top: 0, left: 0 }
-  ])
-  .jpeg({ quality: 92 })
-  .toBuffer();
+    console.log(`[IG] URL con frame Cloudinary: ${cloudinaryUrl}`);
+    return cloudinaryUrl;
 
-  // 5. Guardar en /public/uploads para que IG lo pueda leer
-  const fileName = `vox_${frameType}_${Date.now()}.jpg`;
-  const outDir = path.join(process.cwd(), 'public', 'uploads');
-  fs.mkdirSync(outDir, { recursive: true });
-  fs.writeFileSync(path.join(outDir, fileName), finalImage);
-
-  const baseUrl = process.env.PUBLIC_URL || 'https://ultraserver.koyeb.app';
-  return `${baseUrl}/uploads/${fileName}`;
+  } catch(e) {
+    console.log('[IG] Error armando frame, uso resize simple', e.message);
+    // Fallback que SIEMPRE funciona y arregla tu error 36003
+    const CLOUD = process.env.CLOUDINARY_CLOUD_NAME;
+    const encodedMedia = encodeURIComponent(mediaUrl);
+    return `https://res.cloudinary.com/${CLOUD}/image/fetch/w_1080,h_1350,c_fill,g_auto,q_auto:good,f_jpg/${encodedMedia}`;
+  }
 }
 
 export const listIG = () => Instagram.find().sort({ createdAt: -1 }).limit(50);
