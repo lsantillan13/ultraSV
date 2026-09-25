@@ -28,7 +28,6 @@ function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" !=
 function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
-// <-- NUEVO
 var router = (0, _express.Router)();
 var cacheV2 = function cacheV2(req, res, next) {
   res.set('Cache-Control', 'public, max-age=30, s-maxage=120');
@@ -903,11 +902,9 @@ router.post('/', /*#__PURE__*/function () {
           });
         case 3:
           doc = _context14.v;
-          // --- INDEXNOW + BING PING AL PUBLICAR ---
           cat = (doc.Entry_Category || 'noticia').toLowerCase();
           newUrl = "https://voxdiario.com/".concat(cat, "/").concat(doc.Entry_Slug);
-          (0, _indexnow.submitIndexNow)([newUrl]); // no await, no frena la respuesta
-
+          (0, _indexnow.submitIndexNow)([newUrl]);
           res.status(201).json({
             data: doc,
             post: doc,
@@ -975,7 +972,6 @@ router.put('/:id', /*#__PURE__*/function () {
           });
         case 3:
           updated = _context15.v;
-          // --- INDEXNOW AL EDITAR TAMBIEN ---
           if (updated) {
             cat = (updated.Entry_Category || 'noticia').toLowerCase();
             updUrl = "https://voxdiario.com/".concat(cat, "/").concat(updated.Entry_Slug);
@@ -1063,9 +1059,11 @@ router["delete"]('/:id', /*#__PURE__*/function () {
     return _ref16.apply(this, arguments);
   };
 }());
+
+// --- RUTA FINAL CORREGIDA - 404 REAL ---
 router.get('/:id', /*#__PURE__*/function () {
   var _ref17 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee17(req, res) {
-    var id, Post, post, _t18, _t19;
+    var id, Post, post, _t18;
     return _regenerator().w(function (_context17) {
       while (1) switch (_context17.p = _context17.n) {
         case 0:
@@ -1080,68 +1078,52 @@ router.get('/:id', /*#__PURE__*/function () {
           }));
         case 1:
           Post = getPostModel();
-          if (!_mongoose["default"].Types.ObjectId.isValid(id)) {
+          post = null; // Solo si es un ObjectId válido de 24 chars
+          if (!(_mongoose["default"].Types.ObjectId.isValid(id) && id.length === 24)) {
             _context17.n = 3;
             break;
           }
           _context17.n = 2;
           return Post.findById(id).lean();
         case 2:
-          _t18 = _context17.v;
-          _context17.n = 4;
-          break;
+          post = _context17.v;
         case 3:
-          _t18 = null;
+          if (post) {
+            _context17.n = 5;
+            break;
+          }
+          _context17.n = 4;
+          return Post.findOne({
+            Entry_Slug: id
+          }).lean();
         case 4:
-          post = _t18;
+          post = _context17.v;
+        case 5:
           if (post) {
             _context17.n = 6;
             break;
           }
-          _context17.n = 5;
-          return Post.findOne({
-            Entry_Slug: id
-          }).lean();
-        case 5:
-          post = _context17.v;
-        case 6:
-          if (!(!post && /^[a-z0-9]{6,10}$/.test(id))) {
-            _context17.n = 8;
-            break;
-          }
-          _context17.n = 7;
-          return Post.findOne({
-            Entry_Slug: {
-              $regex: "-".concat(id, "$")
-            }
-          }).lean();
-        case 7:
-          post = _context17.v;
-        case 8:
-          if (post) {
-            _context17.n = 9;
-            break;
-          }
           return _context17.a(2, res.status(404).json({
-            message: 'No encontrado'
+            message: 'No encontrado',
+            slug: id
           }));
-        case 9:
+        case 6:
           res.json({
             data: post,
             post: post
           });
-          _context17.n = 11;
+          _context17.n = 8;
           break;
-        case 10:
-          _context17.p = 10;
-          _t19 = _context17.v;
+        case 7:
+          _context17.p = 7;
+          _t18 = _context17.v;
           res.status(500).json({
-            message: _t19.message
+            message: _t18.message
           });
-        case 11:
+        case 8:
           return _context17.a(2);
       }
-    }, _callee17, null, [[0, 10]]);
+    }, _callee17, null, [[0, 7]]);
   }));
   return function (_x35, _x36) {
     return _ref17.apply(this, arguments);

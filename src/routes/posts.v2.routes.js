@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
-import { submitIndexNow } from '../libs/indexnow.js'; // <-- NUEVO
+import { submitIndexNow } from '../libs/indexnow.js';
 const router = Router();
 
 const cacheV2 = (req, res, next) => {
@@ -202,14 +202,11 @@ router.post('/', async (req, res) => {
     const Post = getPostModel();
     const b = req.body;
     if (!b.Entry_Title ||!b.Entry_Featured_Image) return res.status(400).json({ message: 'Falta título o imagen' });
-
     const base = slugify(b.Entry_Slug || b.Entry_Title).replace(/-[a-z0-9]{6,10}$/, '');
     const shortId = new mongoose.Types.ObjectId().toString().slice(-6).toLowerCase();
-
     if (b.portada) {
       await Post.updateMany({}, { $set: { Entry_Is_Portada: false, carouselMain: false, portada: false } });
     }
-
     const doc = await Post.create({
       Entry_Title: b.Entry_Title,
       Entry_Slug: `${base}-${shortId}`,
@@ -227,12 +224,9 @@ router.post('/', async (req, res) => {
       Entry_Portada_At: b.portada? new Date() : null,
       carouselMainAt: b.portada? new Date() : null,
     });
-
-    // --- INDEXNOW + BING PING AL PUBLICAR ---
     const cat = (doc.Entry_Category || 'noticia').toLowerCase();
     const newUrl = `https://voxdiario.com/${cat}/${doc.Entry_Slug}`;
-    submitIndexNow([newUrl]); // no await, no frena la respuesta
-
+    submitIndexNow([newUrl]);
     res.status(201).json({ data: doc, post: doc, ok: true });
   } catch (e) {
     res.status(500).json({ message: e.message });
@@ -264,14 +258,11 @@ router.put('/:id', async (req, res) => {
       body.Entry_Slug = `${base}-${req.params.id.slice(-6).toLowerCase()}`;
     }
     const updated = await Post.findByIdAndUpdate(req.params.id, body, { new: true });
-
-    // --- INDEXNOW AL EDITAR TAMBIEN ---
     if(updated){
       const cat = (updated.Entry_Category || 'noticia').toLowerCase();
       const updUrl = `https://voxdiario.com/${cat}/${updated.Entry_Slug}`;
       submitIndexNow([updUrl]);
     }
-
     res.json({ data: updated, post: updated });
   } catch (e) {
     console.error('[PUT v2]', e);
@@ -289,19 +280,35 @@ router.delete('/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
+// --- RUTA FINAL CORREGIDA - 404 REAL ---
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    if (['search','last','destacada','destacadas','portada','carousel','ultimas','mas-leidas','slugs','slug'].includes(id)) return res.status(404).json({ message: 'Ruta no encontrada' });
-    const Post = getPostModel();
-    let post = mongoose.Types.ObjectId.isValid(id)? await Post.findById(id).lean() : null;
-    if (!post) post = await Post.findOne({ Entry_Slug: id }).lean();
-    if (!post && /^[a-z0-9]{6,10}$/.test(id)) {
-      post = await Post.findOne({ Entry_Slug: { $regex: `-${id}$` } }).lean();
+    if (['search','last','destacada','destacadas','portada','carousel','ultimas','mas-leidas','slugs','slug'].includes(id)) {
+      return res.status(404).json({ message: 'Ruta no encontrada' });
     }
-    if (!post) return res.status(404).json({ message: 'No encontrado' });
+    const Post = getPostModel();
+    let post = null;
+
+    // Solo si es un ObjectId válido de 24 chars
+    if (mongoose.Types.ObjectId.isValid(id) && id.length === 24) {
+      post = await Post.findById(id).lean();
+    }
+
+    // Búsqueda exacta por slug
+    if (!post) {
+      post = await Post.findOne({ Entry_Slug: id }).lean();
+    }
+
+    // Si no existe -> 404 REAL, no devolver otra nota
+    if (!post) {
+      return res.status(404).json({ message: 'No encontrado', slug: id });
+    }
+
     res.json({ data: post, post });
-  } catch (e) { res.status(500).json({ message: e.message }); }
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 });
 
 export default router;

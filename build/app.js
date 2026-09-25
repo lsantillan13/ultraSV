@@ -21,6 +21,7 @@ var _tagsRoutes = _interopRequireDefault(require("./routes/v2/tags.routes.js"));
 var _ttsRoutes = _interopRequireDefault(require("./routes/v2/tts.routes.js"));
 var _viewsRoutes = _interopRequireDefault(require("./routes/v2/views.routes.js"));
 var _categoriasRoutes = _interopRequireDefault(require("./routes/v2/categorias.routes.js"));
+var _instagramRoutes = _interopRequireDefault(require("./routes/v2/instagram.routes.js"));
 var _trendingCron = require("./crons/trending.cron.js");
 var _sitemapPingCron = require("./crons/sitemapPing.cron.js");
 var _axios = _interopRequireDefault(require("axios"));
@@ -81,7 +82,7 @@ app.get('/radio/reset', function (req, res) {
   });
 });
 
-// 1. FUERZA CANONICA SIN-WWW 301 - MATA LAS 331 DUPLICADAS
+// 1. FUERZA CANONICA SIN-WWW 301
 app.use(function (req, res, next) {
   var host = (req.headers.host || '').toLowerCase();
   if (host.startsWith('www.')) {
@@ -90,7 +91,7 @@ app.use(function (req, res, next) {
   next();
 });
 
-// 2. BOT SEO + JSON-LD - MATA LOS SOFT 404 - FIX: sin Googlebot, lo maneja el Worker
+// 2. BOT SEO + JSON-LD
 var BOT_REGEX = /facebookexternalhit|Twitterbot|WhatsApp|LinkedInBot|Slackbot|TelegramBot/i;
 var SITE_CANONICAL = 'https://voxdiario.com';
 function escAttr() {
@@ -237,8 +238,6 @@ app.get('/health', function (req, res) {
 app.get('/', function (req, res) {
   return res.send("<h1>VoxDiario API v2 Running</h1>");
 });
-
-// Sitemaps primero para que no los tape el 404 - DOBLE MOUNT PARA WORKER
 app.use('/', _sitemapRoutes["default"]);
 app.use('/api/v2', _sitemapRoutes["default"]);
 app.use('/api/posts', _postRoutes["default"]);
@@ -256,6 +255,8 @@ app.use('/api/v2/tags', _tagsRoutes["default"]);
 app.use('/api/v2/tts', _ttsRoutes["default"]);
 app.use('/api/v2/categorias', _categoriasRoutes["default"]);
 app.use('/api/v2/boletin', _boletinRoutes["default"]);
+app.use('/api/v2/instagram', _instagramRoutes["default"]); // <- IG VIVO
+
 app.use(function (req, res) {
   return res.status(404).json({
     status: 404,

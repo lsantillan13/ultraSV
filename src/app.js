@@ -15,6 +15,7 @@ import tagsV2Router from './routes/v2/tags.routes.js';
 import ttsRouter from './routes/v2/tts.routes.js';
 import viewsV2Router from './routes/v2/views.routes.js';
 import categoriasRouter from './routes/v2/categorias.routes.js';
+import instagramRoutes from './routes/v2/instagram.routes.js';
 import { startTrendingCron } from './crons/trending.cron.js';
 import { startSitemapPingCron } from './crons/sitemapPing.cron.js';
 import axios from 'axios';
@@ -65,7 +66,7 @@ app.get('/radio/reset', (req, res) => {
   res.json({ ok: true });
 });
 
-// 1. FUERZA CANONICA SIN-WWW 301 - MATA LAS 331 DUPLICADAS
+// 1. FUERZA CANONICA SIN-WWW 301
 app.use((req, res, next) => {
   const host = (req.headers.host || '').toLowerCase();
   if (host.startsWith('www.')) {
@@ -74,7 +75,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// 2. BOT SEO + JSON-LD - MATA LOS SOFT 404 - FIX: sin Googlebot, lo maneja el Worker
+// 2. BOT SEO + JSON-LD
 const BOT_REGEX = /facebookexternalhit|Twitterbot|WhatsApp|LinkedInBot|Slackbot|TelegramBot/i;
 const SITE_CANONICAL = 'https://voxdiario.com';
 
@@ -141,7 +142,6 @@ app.use('/public', express.static('public'));
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'ultraserver', uptime: process.uptime(), timestamp: Date.now() }));
 app.get('/', (req, res) => res.send(`<h1>VoxDiario API v2 Running</h1>`));
 
-// Sitemaps primero para que no los tape el 404 - DOBLE MOUNT PARA WORKER
 app.use('/', sitemapRoutes);
 app.use('/api/v2', sitemapRoutes);
 
@@ -160,6 +160,7 @@ app.use('/api/v2/tags', tagsV2Router);
 app.use('/api/v2/tts', ttsRouter);
 app.use('/api/v2/categorias', categoriasRouter);
 app.use('/api/v2/boletin', boletinRoutes);
+app.use('/api/v2/instagram', instagramRoutes); // <- IG VIVO
 
 app.use((req, res) => res.status(404).json({ status: 404, message: 'Ruta no encontrada' }));
 app.use((err, req, res, next) => res.status(err.status || 500).json({ status: err.status || 500, message: err.message || 'Error interno' }));
