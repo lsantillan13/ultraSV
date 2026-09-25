@@ -90,7 +90,51 @@ export const deleteIG = async (id) => {
 };
 
 export const publishIG = async (body) => {
-  // tu publish normal
-  const doc = await Instagram.create({ ...body, originalMediaUrl: body.mediaUrl, status: 'published', igMediaId: `manual_${Date.now()}` });
+  const token = await getToken();
+  const IG_USER_ID = process.env.IG_USER_ID || process.env.INSTAGRAM_USER_ID;
+  const CLOUD = 'ihytdbtw';
+
+  const frames = {
+    feed: process.env.VOX_FRAME_FEED,
+    feed_1350: process.env.VOX_FRAME_FEED_1350,
+    story: process.env.VOX_FRAME_STORY
+  };
+  const frameUrl = frames[body.type] || frames.feed_1350;
+
+  // BASE64 del frame, sin encode del original (así lo quiere Cloudinary)
+  const b64 = (u) => Buffer.from(u).toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  let w=1080,h=1350;
+  if(body.type === 'feed'){ w=1080; h=1080; }
+  if(body.type === 'story'){ w=1080; h=1920; }
+
+  const framedUrl = `https://res.cloudinary.com/${CLOUD}/image/fetch/c_fill,w_${w},h_${h},g_auto/l_fetch:${b64(frameUrl)},w_${w},h_${h},c_fill/fl_layer_apply/${body.mediaUrl}`;
+
+  console.log('[IG PUBLISH URL]', framedUrl);
+
+  // 1. Crear container
+  const fd = new URLSearchParams({ image_url: framedUrl, caption: body.caption || '', access_token: token });
+  const cRes = await fetch(`https://graph.facebook.com/v18.0/${IG_USER_ID}/media`, { method: 'POST', body: fd });
+  const cJson = await cRes.json();
+  console.log('[IG CONTAINER RESP]', cJson);
+  if(cJson.error) throw new Error(cJson.error.message + ' | URL: ' + framedUrl);
+
+  await new Promise(r => setTimeout(r, 4000));
+
+  // 2. Publicar
+  const pFd = new URLSearchParams({ creation_id: cJson.id, access_token: token });
+  const pRes = await fetch(`https://graph.facebook.com/v18.0/${IG_USER_ID}/media_publish`, { method: 'POST', body: pFd });
+  const pJson = await pRes.json();
+  console.log('[IG PUBLISH RESP]', pJson);
+  if(pJson.error) throw new Error(pJson.error.message);
+
+  const doc = await Instagram.create({
+    mediaUrl: framedUrl,
+    originalMediaUrl: body.mediaUrl,
+    caption: body.caption,
+    type: body.type,
+    status: 'published',
+    igMediaId: pJson.id,
+    entryRef: body.entryRef || null
+  });
   return { ok: true, data: doc };
 };
