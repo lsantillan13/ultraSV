@@ -23,6 +23,11 @@ import 'dotenv/config'
 import cors from 'cors';
 import compression from 'compression';
 import helmet from 'helmet';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -51,6 +56,11 @@ app.use(compression());
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(morgan('dev'));
+
+// IMPORTANTE PARA IG FRAMES - TIENE QUE IR ANTES DE LAS RUTAS
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+app.use('/public', express.static('public'));
+
 createRoles();
 startTrendingCron();
 startSitemapPingCron();
@@ -89,7 +99,7 @@ function escHtml(str = '') {
 app.use(async (req, res, next) => {
   const ua = req.headers['user-agent'] || '';
   if (!BOT_REGEX.test(ua)) return next();
-  if (req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/sitemap') || req.path.startsWith('/radio') || req.path.startsWith('/feed')) return next();
+  if (req.path.startsWith('/api') || req.path.startsWith('/health') || req.path.startsWith('/sitemap') || req.path.startsWith('/radio') || req.path.startsWith('/feed') || req.path.startsWith('/uploads')) return next();
   if (req.path === '/' || req.path === '/public') return next();
 
   const slug = req.path.split('/').filter(Boolean).pop();
@@ -138,7 +148,6 @@ app.use(async (req, res, next) => {
   } catch (e) { return next(); }
 });
 
-app.use('/public', express.static('public'));
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'ultraserver', uptime: process.uptime(), timestamp: Date.now() }));
 app.get('/', (req, res) => res.send(`<h1>VoxDiario API v2 Running</h1>`));
 
@@ -160,8 +169,9 @@ app.use('/api/v2/tags', tagsV2Router);
 app.use('/api/v2/tts', ttsRouter);
 app.use('/api/v2/categorias', categoriasRouter);
 app.use('/api/v2/boletin', boletinRoutes);
-app.use('/api/v2/instagram', instagramRoutes); // <- IG VIVO
+app.use('/api/v2/instagram', instagramRoutes); // <- IG VIVO CON FRAMES
 
 app.use((req, res) => res.status(404).json({ status: 404, message: 'Ruta no encontrada' }));
 app.use((err, req, res, next) => res.status(err.status || 500).json({ status: err.status || 500, message: err.message || 'Error interno' }));
+
 export default app;

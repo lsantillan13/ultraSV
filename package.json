@@ -56,5 +56,8 @@
     "pollingInterval": 1000,
     "delay": 500,
     "verbose": true
+  },
+  "devDependencies": {
+    "sharp": "^0.35.4"
   }
 }
