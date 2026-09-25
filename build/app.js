@@ -37,7 +37,7 @@ function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { 
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
 var _filename = (0, _url.fileURLToPath)(import.meta.url);
-var _dirname = _path["default"].dirname(_filename);
+var _dirname = _path["default"].resolve();
 var app = (0, _express["default"])();
 var whitelist = ['https://voxdiario.com', 'http://localhost:3000', 'http://localhost:5173'];
 var corsOptions = {
