@@ -25,7 +25,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/index.js",
-    "build": "babel src --out-dir build --copy-files",
+    "build": "babel src --out-dir build --copy-files && echo {\"type\":\"commonjs\"} > build/package.json",
     "start": "node build/index.js"
   },
   "devDependencies": {
