@@ -24,11 +24,8 @@ import cors from 'cors';
 import compression from 'compression';
 import helmet from 'helmet';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.resolve();
-
 const app = express();
 
 const whitelist = [
@@ -57,9 +54,9 @@ app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(morgan('dev'));
 
-// IMPORTANTE PARA IG FRAMES - TIENE QUE IR ANTES DE LAS RUTAS
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
-app.use('/public', express.static('public'));
+// IMPORTANTE PARA IG FRAMES - COMPATIBLE ESM Y CJS
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 createRoles();
 startTrendingCron();
@@ -169,7 +166,7 @@ app.use('/api/v2/tags', tagsV2Router);
 app.use('/api/v2/tts', ttsRouter);
 app.use('/api/v2/categorias', categoriasRouter);
 app.use('/api/v2/boletin', boletinRoutes);
-app.use('/api/v2/instagram', instagramRoutes); // <- IG VIVO CON FRAMES
+app.use('/api/v2/instagram', instagramRoutes);
 
 app.use((req, res) => res.status(404).json({ status: 404, message: 'Ruta no encontrada' }));
 app.use((err, req, res, next) => res.status(err.status || 500).json({ status: err.status || 500, message: err.message || 'Error interno' }));
