@@ -1,16 +1,9 @@
 {
   "name": "ultrasv",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
-  "description": "UltraSV - VoxDiario API",
-  "author": "",
-  "license": "ISC",
-  "keywords": [],
   "dependencies": {
-    "@babel/cli": "^7.19.3",
-    "@babel/core": "^7.19.3",
-    "@babel/node": "^7.19.1",
-    "@babel/preset-env": "^7.19.3",
     "axios": "^1.20.0",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.1",
@@ -31,33 +24,15 @@
     "ws": "^8.21.3"
   },
   "scripts": {
-    "build": "babel src --out-dir build",
-    "dev": "nodemon src/index.js --exec babel-node",
-    "dev:legacy": "nodemon --legacy-watch src/index.js --exec babel-node",
+    "dev": "tsx watch src/index.js",
+    "build": "babel src --out-dir build --copy-files",
     "start": "node build/index.js"
   },
-  "nodemonConfig": {
-    "watch": [
-      "src"
-    ],
-    "ext": "js,json",
-    "execMap": {
-      "js": "babel-node"
-    },
-    "ignore": [
-      "build",
-      "node_modules",
-      "**/node_modules/**",
-      ".pnpm-store",
-      "src/**/*.test.js",
-      "src/**/*.spec.js"
-    ],
-    "legacyWatch": false,
-    "pollingInterval": 1000,
-    "delay": 500,
-    "verbose": true
-  },
   "devDependencies": {
-    "sharp": "^0.35.4"
+    "@babel/cli": "^7.29.7",
+    "@babel/core": "^7.29.7",
+    "@babel/preset-env": "^7.29.7",
+    "sharp": "^0.35.4",
+    "tsx": "^4.23.15"
   }
 }

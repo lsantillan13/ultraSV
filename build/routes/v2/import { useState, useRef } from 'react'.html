@@ -1,0 +1,64 @@
+import { useState, useRef } from 'react';
+
+export default function VoxReader({ slug }) {
+  const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const audioRef = useRef(null);
+
+  const handlePlay = async () => {
+    const API = import.meta.env.VITE_API_URL || "http://localhost:8080";
+    setLoading(true);
+    try {
+      // 1. intenta obtener audio existente
+      let res = await fetch(`${API}/api/v2/tts/${slug}`).then(r=>r.json());
+      let audioUrl = res.data?.audioUrl;
+
+      // 2. si no existe, lo genera
+      if (!audioUrl) {
+        const gen = await fetch(`${API}/api/v2/tts/${slug}/generate`, { method: 'POST' }).then(r=>r.json());
+        audioUrl = gen.url;
+      }
+
+      if (audioUrl) {
+        // audio premium
+        if (!audioRef.current) {
+          audioRef.current = new Audio(`${API}${audioUrl}`);
+          audioRef.current.onended = () => setPlaying(false);
+        }
+        if (playing) {
+          audioRef.current.pause();
+          setPlaying(false);
+        } else {
+          audioRef.current.play();
+          setPlaying(true);
+        }
+      } else {
+        // fallback: Web Speech API con texto limpio (sin HTML)
+        const plain = res.data?.plain || res.data?.resume;
+        const utter = new SpeechSynthesisUtterance(plain);
+        utter.lang = 'es-AR';
+        utter.rate = 1.05;
+        if (playing) { speechSynthesis.cancel(); setPlaying(false); }
+        else { speechSynthesis.speak(utter); setPlaying(true); utter.onend = () => setPlaying(false); }
+      }
+    } catch(e){ console.error(e); }
+    setLoading(false);
+  };
+
+  return (
+    <button onClick={handlePlay} className="vox-reader-btn" disabled={loading}>
+      {loading ? '● Cargando...' : playing ? '⏸ Pausar lectura' : '▶ Escuchar noticia'}
+      <span>{playing ? ' IA leyendo texto limpio' : ' 3 min'}</span>
+      <style>{`
+        .vox-reader-btn{
+          display:inline-flex; align-items:center; gap:8px;
+          background:#111; color:#fff; border:0; padding:10px 16px;
+          border-radius:999px; font-size:13px; font-weight:800;
+          cursor:pointer; transition: all .15s;
+        }
+        .vox-reader-btn:hover{ background:#000; transform: translateY(-1px); }
+        .vox-reader-btn span{ font-weight:500; color:#9CA3AF; font-size:11px; }
+      `}</style>
+    </button>
+  );
+}
