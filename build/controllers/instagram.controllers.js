@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.update = exports.remove = exports.publish = exports.list = exports.getOne = void 0;
 var svc = _interopRequireWildcard(require("../services/instagram.service.js"));
-function _interopRequireWildcard(e, t) { if ("function" == typeof WeakMap) var r = new WeakMap(), n = new WeakMap(); return (_interopRequireWildcard = function _interopRequireWildcard(e, t) { if (!t && e && e.__esModule) return e; var o, i, f = { __proto__: null, "default": e }; if (null === e || "object" != _typeof(e) && "function" != typeof e) return f; if (o = t ? n : r) { if (o.has(e)) return o.get(e); o.set(e, f); } for (var _t6 in e) "default" !== _t6 && {}.hasOwnProperty.call(e, _t6) && ((i = (o = Object.defineProperty) && Object.getOwnPropertyDescriptor(e, _t6)) && (i.get || i.set) ? o(f, _t6, i) : f[_t6] = e[_t6]); return f; })(e, t); }
+function _interopRequireWildcard(e, t) { if ("function" == typeof WeakMap) var r = new WeakMap(), n = new WeakMap(); return (_interopRequireWildcard = function _interopRequireWildcard(e, t) { if (!t && e && e.__esModule) return e; var o, i, f = { __proto__: null, "default": e }; if (null === e || "object" != _typeof(e) && "function" != typeof e) return f; if (o = t ? n : r) { if (o.has(e)) return o.get(e); o.set(e, f); } for (var _t10 in e) "default" !== _t10 && {}.hasOwnProperty.call(e, _t10) && ((i = (o = Object.defineProperty) && Object.getOwnPropertyDescriptor(e, _t10)) && (i.get || i.set) ? o(f, _t10, i) : f[_t10] = e[_t10]); return f; })(e, t); }
 function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i["return"]) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
 function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
@@ -22,7 +22,7 @@ var list = exports.list = /*#__PURE__*/function () {
           return svc.listIG();
         case 1:
           data = _context.v;
-          res.json(data);
+          res.json(data); // array directo
           _context.n = 3;
           break;
         case 2:
@@ -43,38 +43,29 @@ var list = exports.list = /*#__PURE__*/function () {
 }();
 var getOne = exports.getOne = /*#__PURE__*/function () {
   var _ref2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(req, res) {
-    var doc, _t2;
+    var _t2, _t3;
     return _regenerator().w(function (_context2) {
       while (1) switch (_context2.p = _context2.n) {
         case 0:
           _context2.p = 0;
+          _t2 = res;
           _context2.n = 1;
           return svc.getIG(req.params.id);
         case 1:
-          doc = _context2.v;
-          if (doc) {
-            _context2.n = 2;
-            break;
-          }
-          return _context2.a(2, res.status(404).json({
-            ok: false,
-            message: 'No encontrado'
-          }));
-        case 2:
-          res.json(doc);
-          _context2.n = 4;
+          _t2.json.call(_t2, _context2.v);
+          _context2.n = 3;
           break;
-        case 3:
-          _context2.p = 3;
-          _t2 = _context2.v;
-          res.status(500).json({
+        case 2:
+          _context2.p = 2;
+          _t3 = _context2.v;
+          res.status(_t3.message.includes('No encontrado') ? 404 : 500).json({
             ok: false,
-            error: _t2.message
+            error: _t3.message
           });
-        case 4:
+        case 3:
           return _context2.a(2);
       }
-    }, _callee2, null, [[0, 3]]);
+    }, _callee2, null, [[0, 2]]);
   }));
   return function getOne(_x3, _x4) {
     return _ref2.apply(this, arguments);
@@ -82,24 +73,24 @@ var getOne = exports.getOne = /*#__PURE__*/function () {
 }();
 var publish = exports.publish = /*#__PURE__*/function () {
   var _ref3 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(req, res) {
-    var r, _t3;
+    var _t4, _t5;
     return _regenerator().w(function (_context3) {
       while (1) switch (_context3.p = _context3.n) {
         case 0:
           _context3.p = 0;
+          _t4 = res;
           _context3.n = 1;
           return svc.publishIG(req.body);
         case 1:
-          r = _context3.v;
-          res.json(r);
+          _t4.json.call(_t4, _context3.v);
           _context3.n = 3;
           break;
         case 2:
           _context3.p = 2;
-          _t3 = _context3.v;
+          _t5 = _context3.v;
           res.status(500).json({
             ok: false,
-            error: _t3.message
+            error: _t5.message
           });
         case 3:
           return _context3.a(2);
@@ -112,27 +103,28 @@ var publish = exports.publish = /*#__PURE__*/function () {
 }();
 var update = exports.update = /*#__PURE__*/function () {
   var _ref4 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(req, res) {
-    var doc, _t4;
+    var _t6, _t7, _t8;
     return _regenerator().w(function (_context4) {
       while (1) switch (_context4.p = _context4.n) {
         case 0:
           _context4.p = 0;
+          _t6 = res;
           _context4.n = 1;
           return svc.updateIG(req.params.id, req.body);
         case 1:
-          doc = _context4.v;
-          res.json({
+          _t7 = _context4.v;
+          _t6.json.call(_t6, {
             ok: true,
-            data: doc
+            data: _t7
           });
           _context4.n = 3;
           break;
         case 2:
           _context4.p = 2;
-          _t4 = _context4.v;
+          _t8 = _context4.v;
           res.status(500).json({
             ok: false,
-            error: _t4.message
+            error: _t8.message
           });
         case 3:
           return _context4.a(2);
@@ -145,27 +137,28 @@ var update = exports.update = /*#__PURE__*/function () {
 }();
 var remove = exports.remove = /*#__PURE__*/function () {
   var _ref5 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(req, res) {
-    var doc, _t5;
+    var _t9, _t0, _t1;
     return _regenerator().w(function (_context5) {
       while (1) switch (_context5.p = _context5.n) {
         case 0:
           _context5.p = 0;
+          _t9 = res;
           _context5.n = 1;
           return svc.deleteIG(req.params.id);
         case 1:
-          doc = _context5.v;
-          res.json({
+          _t0 = _context5.v._id;
+          _t9.json.call(_t9, {
             ok: true,
-            deleted: doc._id
+            deleted: _t0
           });
           _context5.n = 3;
           break;
         case 2:
           _context5.p = 2;
-          _t5 = _context5.v;
+          _t1 = _context5.v;
           res.status(500).json({
             ok: false,
-            error: _t5.message
+            error: _t1.message
           });
         case 3:
           return _context5.a(2);
